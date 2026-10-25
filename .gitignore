@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+release/
+test-results/
+playwright-report/
+*.tsbuildinfo
+*.log
+.DS_Store
+packages/cli/npm/

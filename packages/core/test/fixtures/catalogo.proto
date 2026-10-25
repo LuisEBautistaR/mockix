@@ -1,0 +1,7 @@
+syntax = "proto3";
+package tienda;
+service Catalogo {
+  rpc ObtenerProducto (ProductoId) returns (Producto);
+}
+message ProductoId { string id = 1; }
+message Producto { string id = 1; string nombre = 2; double precio = 3; }

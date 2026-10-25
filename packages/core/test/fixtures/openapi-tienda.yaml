@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Tienda Demo
+  version: 1.2.0
+servers:
+  - url: https://api.tienda-demo.test/v1
+paths:
+  /productos:
+    get:
+      operationId: listarProductos
+      tags: [Productos]
+      summary: Lista los productos
+      parameters:
+        - { name: categoria, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Productos
+          content:
+            application/json:
+              example:
+                data:
+                  - { id: prd_7Qm2, nombre: Café de Veracruz 500 g, precio: 189 }
+                total: 1
+    post:
+      operationId: crearProducto
+      tags: [Productos]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Producto" }
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Producto" }
+        "422":
+          description: Datos no válidos
+          content:
+            application/problem+json:
+              examples:
+                precio:
+                  value: { title: Datos no válidos, campo: precio }
+  /productos/{productoId}:
+    get:
+      operationId: obtenerProducto
+      tags: [Productos]
+      parameters:
+        - { name: productoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Un producto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Producto" }
+        "404":
+          description: No existe
+          content:
+            application/json:
+              example: { error: no existe }
+    delete:
+      operationId: borrarProducto
+      tags: [Productos]
+      parameters:
+        - { name: productoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Borrado }
+  /salud:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              example: "ok"
+components:
+  schemas:
+    Producto:
+      type: object
+      required: [id, nombre]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        email: { type: string }
+        precio: { type: number, minimum: 1, maximum: 999 }
+        stock: { type: integer, minimum: 0, maximum: 50 }
+        activo: { type: boolean }
+        categoria: { type: string, enum: [cafe, te] }
+        creado: { type: string, format: date-time }
+        etiquetas:
+          type: array
+          items: { type: string }

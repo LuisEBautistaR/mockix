@@ -1,0 +1,31 @@
+# Full check (types, unit, CLI binary, Electron E2E) on Windows.
+# Runs on pull requests and by hand; pushes to main do not trigger it, so
+# Actions minutes are only spent when asked.
+name: ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Capturas de las E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screens
+          path: apps/desktop/test-results
+          if-no-files-found: ignore

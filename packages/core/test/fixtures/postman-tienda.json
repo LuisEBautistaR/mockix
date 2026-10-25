@@ -1,0 +1,111 @@
+{
+  "info": {
+    "_postman_id": "8f1c2d3e-0000-4000-8000-000000000001",
+    "name": "Tienda API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.tienda-demo.test/v1" },
+    { "key": "moneda", "value": "MXN" }
+  ],
+  "item": [
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Obtener producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/productos/:id", "host": ["{{baseUrl}}"], "path": ["productos", ":id"], "variable": [{ "key": "id", "value": "prd_7Qm2" }] }
+          },
+          "response": [
+            {
+              "name": "Existe",
+              "originalRequest": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/productos/prd_7Qm2" } },
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"prd_7Qm2\",\n  \"nombre\": \"Café de Veracruz 500 g\",\n  \"moneda\": \"{{moneda}}\",\n  \"consulta\": \"{{$guid}}\"\n}"
+            },
+            {
+              "name": "No existe",
+              "originalRequest": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/productos/9001" } },
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"error\": \"no existe\" }"
+            }
+          ]
+        },
+        {
+          "name": "Listar productos",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/productos?categoria=cafe" } },
+          "response": [
+            {
+              "name": "Café",
+              "originalRequest": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/productos?categoria=cafe" } },
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"data\": [ { \"id\": \"prd_7Qm2\" } ], \"total\": 1 }"
+            },
+            {
+              "name": "Vacío",
+              "originalRequest": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/productos?categoria=ninguna" } },
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"data\": [], \"total\": 0 }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Crear pedido",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"cliente\": 1043 }" },
+        "url": { "raw": "{{baseUrl}}/pedidos" }
+      },
+      "response": [
+        {
+          "name": "Creado",
+          "originalRequest": { "method": "POST", "header": [{ "key": "X-Rol", "value": "cliente" }], "url": { "raw": "{{baseUrl}}/pedidos" } },
+          "code": 201,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{ \"id\": \"ped_1043\", \"estado\": \"creado\" }"
+        },
+        {
+          "name": "Prohibido",
+          "originalRequest": { "method": "POST", "header": [{ "key": "X-Rol", "value": "invitado" }], "url": { "raw": "{{baseUrl}}/pedidos" } },
+          "code": 403,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{ \"error\": \"rol\" }"
+        }
+      ]
+    },
+    {
+      "name": "Salud",
+      "request": { "method": "GET", "url": "{{baseUrl}}/salud" }
+    },
+    {
+      "name": "Canal de pedidos",
+      "x-sendix": { "type": "websocket", "messages": [{ "name": "Suscribirse", "body": "{\"tipo\":\"suscribir\"}", "language": "json" }] },
+      "request": { "method": "GET", "url": "{{baseUrl}}/pedidos/canal" }
+    },
+    {
+      "name": "Tiempo real",
+      "x-sendix": { "type": "socketio", "settings": { "path": "/socket.io" }, "messages": [{ "name": "Seguir", "event": "seguir", "body": "{}" }, { "name": "Otra", "event": "seguir", "body": "{}" }] },
+      "request": { "method": "GET", "url": "https://rt.tienda-demo.test/pedidos" }
+    },
+    {
+      "name": "Obtener producto (gRPC)",
+      "x-sendix": { "type": "grpc", "service": "tienda.Catalogo", "method": "ObtenerProducto", "message": "{\"id\":\"prd_7Qm2\"}", "definition": { "source": "files", "files": ["catalogo.proto"] } },
+      "request": { "method": "POST", "url": "localhost:50051" }
+    },
+    {
+      "name": "Otro servicio (reflection)",
+      "x-sendix": { "type": "grpc", "service": "tienda.Pagos", "method": "Cobrar", "definition": { "source": "reflection" } },
+      "request": { "method": "POST", "url": "localhost:50052" }
+    }
+  ]
+}

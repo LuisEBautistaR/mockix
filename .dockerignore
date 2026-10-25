@@ -1,0 +1,5 @@
+# Only the bundled CLI goes into the image.
+*
+!packages/cli/npm/package.json
+!packages/cli/npm/README.md
+!packages/cli/npm/dist/**

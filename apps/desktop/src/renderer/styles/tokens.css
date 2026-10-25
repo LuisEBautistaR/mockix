@@ -1,0 +1,109 @@
+/* Design tokens from docs/DESIGN.md (approved prototype). Light is the default. */
+:root {
+  --rail: #e4e1dd;
+  --work: #eeecea;
+  --field: #f7f6f4;
+  --hover: rgba(51, 50, 49, 0.06);
+  --line: #d5d0ca;
+  --line-strong: #bfb8af;
+  --ink: #333231;
+  --muted: #57534f;
+  --faint: #66615b;
+  --accent: #5c6b54;
+  --accent-hover: #53614c;
+  --accent-press: #4d5a46;
+  --accent-ink: #ffffff;
+  --select: rgba(92, 107, 84, 0.16);
+  --select-ink: #3f4b39;
+  --focus: #5c6b54;
+  --var-bg: rgba(131, 90, 23, 0.12);
+  --var-ink: #6e4b12;
+
+  --m-get: #176a77;
+  --m-post: #8a5a0c;
+  --m-put: #4249a6;
+  --m-patch: #7346a0;
+  --m-delete: #a33a2c;
+  --m-ws: #4f6115;
+  --m-sio: #5f5c12;
+  --m-grpc: #8e3a72;
+
+  --ok: #2d6844;
+  --ok-bg: rgba(45, 104, 68, 0.11);
+  --err: #a1362a;
+  --err-bg: rgba(161, 54, 42, 0.1);
+
+  --syn-key: #1f6f7c;
+  --syn-str: #8c5514;
+  --syn-num: #2d5ea8;
+  --syn-lit: #a3345a;
+  --syn-kw: #7440a3;
+  --syn-com: #6f6a64;
+  --syn-punct: #6f6a64;
+
+  --strata-1: #d6cdc1;
+  --strata-2: #c3b8aa;
+  --strata-3: #a99d8e;
+  --strata-4: #6f675f;
+  --strata-5: #4a4540;
+
+  --shadow: 0 6px 18px rgba(51, 50, 49, 0.14), 0 1px 3px rgba(51, 50, 49, 0.12);
+  --ui: "Archivo Variable", system-ui, sans-serif;
+  --mono: "JetBrains Mono Variable", ui-monospace, Consolas, monospace;
+  --radius: 4px;
+  --t: 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: light;
+}
+
+/* Dark theme: the renderer sets data-theme from the app setting (Sistema follows the OS). */
+:root[data-theme="dark"] {
+    --rail: #1d1c1b;
+    --work: #242322;
+    --field: #2a2927;
+    --hover: rgba(233, 230, 226, 0.06);
+    --line: #363431;
+    --line-strong: #4a4742;
+    --ink: #e9e6e2;
+    --muted: #b0aaa3;
+    --faint: #9a948c;
+    --accent: #5c6b54;
+    --accent-hover: #67785e;
+    --accent-press: #536049;
+    --accent-ink: #ffffff;
+    --select: rgba(142, 163, 131, 0.2);
+    --select-ink: #c9d6c1;
+    --focus: #9db091;
+    --var-bg: rgba(213, 165, 90, 0.16);
+    --var-ink: #e2bd80;
+  
+    --m-get: #7fb7c0;
+    --m-post: #d9aa5e;
+    --m-put: #a3aae6;
+    --m-patch: #bea6da;
+    --m-delete: #ec9283;
+    --m-ws: #b8c47e;
+    --m-sio: #c9c27a;
+    --m-grpc: #d79ac0;
+  
+    --ok: #8fcaa0;
+    --ok-bg: rgba(143, 202, 160, 0.12);
+    --err: #f09385;
+    --err-bg: rgba(240, 147, 133, 0.12);
+  
+    --syn-key: #8fc3cb;
+    --syn-str: #dcb489;
+    --syn-num: #a5bde6;
+    --syn-lit: #e6a0b5;
+    --syn-kw: #c6a8e0;
+    --syn-com: #9c968e;
+    --syn-punct: #9c968e;
+  
+    --strata-1: #3d3a36;
+    --strata-2: #524d47;
+    --strata-3: #6b655d;
+    --strata-4: #8f877c;
+    --strata-5: #b9afa2;
+  
+    --shadow: 0 8px 22px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }

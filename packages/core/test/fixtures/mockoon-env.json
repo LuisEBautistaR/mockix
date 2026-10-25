@@ -1,0 +1,109 @@
+{
+  "uuid": "11111111-1111-4111-8111-111111111111",
+  "lastMigration": 33,
+  "name": "Pagos Demo",
+  "endpointPrefix": "api",
+  "latency": 0,
+  "port": 3005,
+  "hostname": "",
+  "cors": true,
+  "headers": [{ "key": "X-Servicio", "value": "pagos" }],
+  "proxyMode": false,
+  "proxyHost": "",
+  "data": [
+    { "uuid": "b-1", "id": "abc1", "name": "Cobros", "documentation": "", "value": "[{\"id\":\"c1\",\"monto\":100},{\"id\":\"c2\",\"monto\":250}]" },
+    { "uuid": "b-2", "id": "abc2", "name": "Plantilla", "documentation": "", "value": "{{faker 'person.firstName'}}" }
+  ],
+  "routes": [
+    {
+      "uuid": "r-1",
+      "type": "http",
+      "documentation": "Obtiene un cobro",
+      "method": "get",
+      "endpoint": "cobros/:id",
+      "responseMode": null,
+      "responses": [
+        {
+          "uuid": "s-1",
+          "body": "{ \"id\": \"{{urlParam 'id'}}\", \"cliente\": \"{{faker 'person.fullName'}}\" }",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "Encontrado",
+          "headers": [{ "key": "Content-Type", "value": "application/json" }],
+          "bodyType": "INLINE",
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "default": true
+        },
+        {
+          "uuid": "s-2",
+          "body": "{ \"error\": \"no existe\" }",
+          "latency": 0,
+          "statusCode": 404,
+          "label": "No existe",
+          "headers": [{ "key": "Content-Type", "value": "application/json" }],
+          "bodyType": "INLINE",
+          "rules": [
+            { "target": "params", "modifier": "id", "value": "^9", "invert": false, "operator": "regex" },
+            { "target": "header", "modifier": "X-Forzar", "value": "404", "invert": false, "operator": "equals" }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "default": false
+        }
+      ]
+    },
+    {
+      "uuid": "r-2",
+      "type": "http",
+      "method": "all",
+      "endpoint": "estado",
+      "responseMode": "RANDOM",
+      "responses": [
+        { "uuid": "s-3", "body": "ok", "statusCode": 200, "label": "", "headers": [], "bodyType": "INLINE", "rules": [], "default": true },
+        { "uuid": "s-4", "body": "caido", "statusCode": 503, "label": "", "headers": [], "bodyType": "INLINE", "rules": [], "default": false }
+      ]
+    },
+    {
+      "uuid": "r-3",
+      "type": "crud",
+      "method": "",
+      "endpoint": "cobros",
+      "responses": [{ "uuid": "s-5", "body": "", "statusCode": 200, "label": "", "headers": [], "bodyType": "DATABUCKET", "databucketID": "abc1", "crudKey": "id", "rules": [], "default": true }]
+    },
+    {
+      "uuid": "r-4",
+      "type": "http",
+      "method": "get",
+      "endpoint": "fecha",
+      "responses": [{ "uuid": "s-6", "body": "{{dateTimeShift days=1}}", "statusCode": 200, "label": "", "headers": [], "bodyType": "INLINE", "rules": [], "default": true }]
+    },
+    {
+      "uuid": "r-5",
+      "type": "http",
+      "method": "get",
+      "endpoint": "todos",
+      "responses": [{ "uuid": "s-7", "body": "", "statusCode": 200, "label": "", "headers": [], "bodyType": "DATABUCKET", "databucketID": "abc1", "rules": [], "default": true }]
+    },
+    {
+      "uuid": "r-6",
+      "type": "ws",
+      "method": "get",
+      "endpoint": "eventos",
+      "responses": [
+        { "uuid": "w-1", "label": "Pong", "body": "{\"tipo\":\"pong\"}", "default": false, "rules": [{ "target": "message", "modifier": "tipo", "value": "ping", "operator": "equals" }] },
+        { "uuid": "w-2", "label": "Eco", "body": "recibido", "default": true, "rules": [] }
+      ]
+    },
+    {
+      "uuid": "r-7",
+      "type": "ws",
+      "method": "get",
+      "endpoint": "latido",
+      "streamingMode": "BROADCAST",
+      "streamingInterval": 50,
+      "responses": [{ "uuid": "w-3", "label": "", "body": "{\"tipo\":\"latido\"}", "default": true, "rules": [] }]
+    }
+  ]
+}
