@@ -4,7 +4,9 @@
 
 Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de escritorio, CLI y Docker. Es la app hermana de Sendix. Sistema visual en [docs/DESIGN.md](docs/DESIGN.md).
 
-Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/),, la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
+**¿Primera vez?** Empieza por la [guía rápida](docs/GUIA-RAPIDA.md) (también en [protohub.digital/mockix/guia](https://protohub.digital/mockix/guia/)). Cada función se explica en el [manual de uso](docs/MANUAL.md).
+
+Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
