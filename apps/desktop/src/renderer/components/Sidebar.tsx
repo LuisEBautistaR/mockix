@@ -223,7 +223,7 @@ export function Sidebar() {
         <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filtrar rutas" aria-label="Filtrar rutas" />
       </label>
       <ul className="tree" role="tree">
-        {filtered.length === 0 && <li className="side-note">Este workspace no tiene mocks: crea uno con el botón de servidor.</li>}
+        {filtered.length === 0 && <li className="side-note">Este workspace no tiene mocks: crea uno desde un contrato o vacío con el botón de servidor.</li>}
         {filtered.map((m) => (
           <MockNode key={m.id} mock={m} />
         ))}

@@ -235,6 +235,13 @@ pre.code-block { padding: 8px 12px; font-size: 12px; line-height: 19px; white-sp
 .why-box { margin: 6px 12px 8px; font: 400 12px/1.5 var(--mono); color: var(--err); background: var(--err-bg); border-radius: 3px; padding: 6px 8px; white-space: pre-wrap; }
 .body-opts { display: flex; align-items: center; gap: 14px; padding: 4px 12px 4px; }
 .check-row { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.check-col { display: grid; gap: 8px; }
+.pick-contract { display: grid; gap: 10px; justify-items: start; }
+.start-mock { display: grid; gap: 8px; max-width: 560px; justify-items: start; padding: 12px; }
+.start-mock .note { padding: 0; }
+.start-mock .toolbar { padding: 0; }
+.report-list.full { max-height: none; overflow: visible; }
+.picked { font-size: 12.5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* tables */
 .kv { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }

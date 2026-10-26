@@ -1,7 +1,8 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { EditError, createMock, setRouteOrder, writeRoute } from "../edit.js";
+import { chaosProfilesFor } from "./openapi-extras.js";
 import { importHar } from "./har.js";
 import { importMockoon } from "./mockoon.js";
 import { ImportError, detectFormat, parseSource, type ImportFormat, type ImportReport, type ImportResult, type ImportedMock } from "./model.js";
@@ -12,7 +13,8 @@ export { DEFAULT_REDACTION, exchangesToRoutes, inferPath, looksLikeId, type Conv
 export { exportOpenApi, toMockPath, toOpenApiPath } from "./openapi.js";
 export { convertPostmanText } from "./postman.js";
 export { templateFromSchema } from "./schema-template.js";
-export { ImportError, detectFormat, nameFromUrl, parseSource, slugify, type ImportFormat, type ImportReport, type ImportResult, type ImportedMock, type ImportedRoute } from "./model.js";
+export { ImportError, detectFormat, nameFromUrl, parseSource, slugify, type ImportExtras, type ImportFormat, type ImportReport, type ImportResult, type ImportedMock, type ImportedRoute } from "./model.js";
+export { PICK_HEADER, PICK_QUERY } from "./openapi-extras.js";
 
 export interface ImportOptions {
   /** Force a format instead of detecting it. */
@@ -29,8 +31,12 @@ export async function importSource(text: string, fileName: string, options: Impo
   const format = options.format ?? detectFormat(value);
   if (!format) throw new ImportError("No se reconoce el formato: se admite OpenAPI 3/Swagger 2, colección de Postman v2.x, HAR o entorno de Mockoon");
   switch (format) {
-    case "openapi":
-      return importOpenApi(value, fileName);
+    case "openapi": {
+      const result = await importOpenApi(value, fileName);
+      // Only OpenAPI 3 can be a contract: the checker does not read Swagger 2.
+      const v3 = typeof (value as Record<string, unknown>)["openapi"] === "string";
+      return v3 ? { ...result, contractSource: { text, fileName } } : result;
+    }
     case "postman":
       return withProtos(importPostman(value, fileName), options.baseDir ?? process.cwd());
     case "har":
@@ -67,6 +73,28 @@ export interface WriteOptions {
   name?: string;
   port?: number;
   prefix?: string;
+  /** An OpenAPI source is copied to contracts/ and connected to the mock (warn mode) unless this is false. */
+  contract?: boolean;
+  /** Chaos profiles prepared from the contract's server errors (off until applied) unless this is false. */
+  chaos?: boolean;
+}
+
+/** A file of the folder with exactly this content, if there is one. */
+async function findSame(dir: string, text: string): Promise<string | null> {
+  for (const file of (await readdir(dir).catch(() => [] as string[])).sort()) {
+    if ((await readFile(join(dir, file), "utf8").catch(() => null)) === text) return file;
+  }
+  return null;
+}
+
+/** A free file name in a workspace folder: the same content is reused, a different one gets -2, -3… */
+async function freeFile(dir: string, base: string, ext: string, text: string): Promise<{ file: string; reused: boolean }> {
+  for (let n = 1; ; n++) {
+    const file = `${n === 1 ? base : `${base}-${n}`}${ext}`;
+    const current = await readFile(join(dir, file), "utf8").catch(() => null);
+    if (current === null) return { file, reused: false };
+    if (current === text) return { file, reused: true };
+  }
 }
 
 export interface WrittenImport {
@@ -108,6 +136,22 @@ export async function writeImported(workspaceDir: string, result: ImportResult, 
     if (port !== mock.port) report.warnings.push(`El puerto ${mock.port} ya lo usa otro mock del workspace; este usa ${port}`);
   }
 
+  // The contract goes in first, so the mock already finds it when it loads.
+  let contractFile: string | null = null;
+  if (result.contractSource && options.contract !== false) {
+    const ext = /^\.(ya?ml|json)$/i.test(extname(result.contractSource.fileName)) ? extname(result.contractSource.fileName).toLowerCase() : ".yaml";
+    const dir = join(resolve(workspaceDir), "contracts");
+    await mkdir(dir, { recursive: true });
+    // Already in contracts/ (imported from there): connect that file instead of a copy.
+    const same = await findSame(dir, result.contractSource.text);
+    if (same) contractFile = `contracts/${same}`;
+    else {
+      const { file, reused } = await freeFile(dir, `${name}.openapi`, ext, result.contractSource.text);
+      if (!reused) await writeFile(join(dir, file), result.contractSource.text);
+      contractFile = `contracts/${file}`;
+    }
+  }
+
   await createMock(workspaceDir, name, port, options.prefix ?? mock.prefix, {
     ...(mock.latency ? { latency: mock.latency } : {}),
     ...(mock.cors === false ? { cors: false } : {}),
@@ -115,7 +159,18 @@ export async function writeImported(workspaceDir: string, result: ImportResult, 
     variables: mock.variables,
     description: `Importado de ${report.source}`,
     ...(mock.grpc ? { grpc: { port: mock.grpc.port } } : {}),
+    ...(contractFile ? { contract: { file: contractFile, mode: "warn" as const } } : {}),
   });
+  if (report.extras) report.extras.contract = contractFile;
+
+  if (report.extras && options.chaos !== false) {
+    const profiles = chaosProfilesFor(name, mock.serverErrors ?? []);
+    const dir = join(resolve(workspaceDir), "chaos");
+    await mkdir(dir, { recursive: true });
+    const { file, reused } = await freeFile(dir, name, ".yaml", profiles.text);
+    if (!reused) await writeFile(join(dir, file), profiles.text);
+    report.extras.chaos = profiles.names;
+  }
   const root = join(resolve(workspaceDir), "mocks", name);
   for (const [rel, text] of Object.entries(mock.workspaceFiles ?? {})) {
     const abs = join(resolve(workspaceDir), rel);
@@ -133,7 +188,8 @@ export async function writeImported(workspaceDir: string, result: ImportResult, 
     const abs = join(root, rel);
     await mkdir(dirname(abs), { recursive: true });
     await writeFile(abs, text, { flag: "wx" }).then(
-      () => extraWritten++,
+      // Scenarios are not routes; WebSocket routes and gRPC services are.
+      () => (rel.startsWith("scenarios/") ? undefined : extraWritten++),
       () => report.skipped.push(`no se pudo escribir ${rel} (ya existe)`),
     );
   }

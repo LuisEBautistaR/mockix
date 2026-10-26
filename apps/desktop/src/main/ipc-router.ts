@@ -139,6 +139,30 @@ export function registerIpcRouter({ mocks, workspace, editor, recorder, insight,
       return editor.removeMock(id);
     }),
   );
+  ipcMain.handle(IpcChannels.contractsPick, async (event) => {
+    if (!isTrustedSender(event.senderFrame)) return forbidden;
+    if (!workspace.state.dir) return { ok: false, error: { code: ErrorCodes.noWorkspace, message: "No workspace is open" } };
+    const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const options: Electron.OpenDialogOptions = {
+      title: "Elegir un contrato OpenAPI",
+      properties: ["openFile"],
+      filters: [
+        { name: "OpenAPI o Swagger", extensions: ["yaml", "yml", "json"] },
+        { name: "Todos los archivos", extensions: ["*"] },
+      ],
+    };
+    const picked = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    if (picked.canceled || !picked.filePaths[0]) return { ok: true, value: null };
+    return editor.pickContract(picked.filePaths[0]);
+  });
+  ipcMain.handle(IpcChannels.mocksCreateFromContract, async (event, raw) => {
+    if (!isTrustedSender(event.senderFrame)) return forbidden;
+    const parsed = z
+      .object({ name: mockId, port: z.number().int().min(0).max(65535), prefix: z.string().max(200).regex(/^(\/[^/\s?#]+)*$/), contract: z.boolean(), chaos: z.boolean() })
+      .strict()
+      .safeParse(raw);
+    return parsed.success ? editor.createFromContract(parsed.data) : invalid("Invalid mock settings");
+  });
   ipcMain.handle(IpcChannels.mocksCreate, async (event, rawName, rawPort, rawPrefix): Promise<Outcome<null>> => {
     if (!isTrustedSender(event.senderFrame)) return forbidden;
     const name = mockId.safeParse(rawName);

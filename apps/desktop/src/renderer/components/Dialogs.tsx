@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { Icon } from "../Icon";
 import { METHOD_CLASS, ROUTE_METHODS, shortMethod } from "../lib/format";
 import { useStore } from "../state/store";
-import type { ImportSummary } from "@shared/ipc";
+import type { ContractPreview, ImportSummary } from "@shared/ipc";
 
 function Modal({ title, onClose, children, testId }: { title: string; onClose(): void; children: ReactNode; testId: string }) {
   useEffect(() => {
@@ -25,44 +25,105 @@ function Modal({ title, onClose, children, testId }: { title: string; onClose():
   );
 }
 
-function NewMockDialog() {
+/** A new mock from an OpenAPI contract (routes, data, scenarios, chaos and the contract connected) or empty. */
+function NewMockDialog({ start }: { start: "contract" | "empty" }) {
   const setDialog = useStore((s) => s.setDialog);
   const createMock = useStore((s) => s.createMock);
+  const createFromContract = useStore((s) => s.createFromContract);
   const mocks = useStore((s) => s.mocks);
   const usedPorts = new Set(mocks.map((m) => m.port));
   let suggested = 3000;
   while (usedPorts.has(suggested)) suggested++;
+  const [mode, setMode] = useState(start);
+  const [preview, setPreview] = useState<ContractPreview | null>(null);
   const [name, setName] = useState("");
   const [port, setPort] = useState(String(suggested));
   const [prefix, setPrefix] = useState("");
+  const [connect, setConnect] = useState(true);
+  const [chaos, setChaos] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const valid = /^[a-z0-9][a-z0-9-]{0,63}$/.test(name) && /^\d{1,5}$/.test(port) && Number(port) <= 65535 && /^(\/[^/\s?#]+)*$/.test(prefix);
+  const fields = /^[a-z0-9][a-z0-9-]{0,63}$/.test(name) && /^\d{1,5}$/.test(port) && Number(port) <= 65535 && /^(\/[^/\s?#]+)*$/.test(prefix);
+  const fromContract = mode === "contract";
+  const valid = fields && (!fromContract || preview !== null) && !busy;
+
+  const pick = async () => {
+    setError(null);
+    const outcome = await window.mockix.contracts.pick();
+    if (!outcome.ok) return setError(outcome.error.message);
+    if (!outcome.value) return;
+    setPreview(outcome.value);
+    setName(outcome.value.name);
+    setPort(String(outcome.value.port));
+    setPrefix(outcome.value.prefix);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    const err = await createMock(name, Number(port), prefix);
+    setBusy(true);
+    const err = fromContract ? await createFromContract({ name, port: Number(port), prefix, contract: connect, chaos }) : await createMock(name, Number(port), prefix);
+    setBusy(false);
     if (err) setError(err);
-    else setDialog(null);
+    else if (!fromContract) setDialog(null);
   };
 
   return (
     <Modal title="Nuevo mock" onClose={() => setDialog(null)} testId="dialog-new-mock">
       <form onSubmit={submit} className="modal-body">
-        <label className="field">
-          Nombre <span className="hint">minúsculas, números y guiones; es la carpeta mocks/&lt;nombre&gt;</span>
-          <input autoFocus className="mono" value={name} onChange={(e) => setName(e.target.value.toLowerCase())} placeholder="pagos" data-testid="new-mock-name" />
-        </label>
-        <div className="field-row">
-          <label className="field">
-            Puerto <span className="hint">0 = uno libre</span>
-            <input className="mono" value={port} onChange={(e) => setPort(e.target.value)} inputMode="numeric" data-testid="new-mock-port" />
-          </label>
-          <label className="field">
-            Prefijo <span className="hint">opcional</span>
-            <input className="mono" value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="/v1" data-testid="new-mock-prefix" />
-          </label>
+        <div className="seg wide">
+          <button type="button" aria-pressed={fromContract} onClick={() => setMode("contract")} data-testid="new-mock-from-contract">
+            Desde un contrato OpenAPI
+          </button>
+          <button type="button" aria-pressed={!fromContract} onClick={() => setMode("empty")} data-testid="new-mock-empty">
+            Vacío
+          </button>
         </div>
+        {fromContract && !preview && (
+          <div className="pick-contract">
+            <p className="hint">Una ruta por operación con sus respuestas, el contrato conectado, datos con CRUD, escenarios y perfiles de caos deducidos del archivo. Al final verás qué se creó.</p>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void pick()} data-testid="new-mock-pick">
+              <Icon name="folder" size={14} /> Elegir contrato…
+            </button>
+          </div>
+        )}
+        {fromContract && preview && (
+          <p className="picked" data-testid="new-mock-picked">
+            <span className="mono">{preview.fileName}</span> · {preview.title} · {preview.operations} {preview.operations === 1 ? "ruta" : "rutas"}{" "}
+            <button type="button" className="link-btn" onClick={() => void pick()}>
+              Cambiar
+            </button>
+          </p>
+        )}
+        {(!fromContract || preview) && (
+          <>
+            <label className="field">
+              Nombre <span className="hint">minúsculas, números y guiones; es la carpeta mocks/&lt;nombre&gt;</span>
+              <input autoFocus className="mono" value={name} onChange={(e) => setName(e.target.value.toLowerCase())} placeholder="pagos" data-testid="new-mock-name" />
+            </label>
+            <div className="field-row">
+              <label className="field">
+                Puerto <span className="hint">0 = uno libre</span>
+                <input className="mono" value={port} onChange={(e) => setPort(e.target.value)} inputMode="numeric" data-testid="new-mock-port" />
+              </label>
+              <label className="field">
+                Prefijo <span className="hint">opcional</span>
+                <input className="mono" value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="/v1" data-testid="new-mock-prefix" />
+              </label>
+            </div>
+          </>
+        )}
+        {fromContract && preview && (
+          <div className="check-col">
+            <label className="check-row" title={preview.connectable ? "" : "Es Swagger 2.0: la revisión de peticiones necesita OpenAPI 3"}>
+              <input type="checkbox" checked={connect && preview.connectable} disabled={!preview.connectable} onChange={(e) => setConnect(e.target.checked)} data-testid="new-mock-connect" />{" "}
+              {preview.connectable ? "Conectar el contrato en modo avisar" : "Conectar el contrato (no disponible: es Swagger 2.0, se necesita OpenAPI 3)"}
+            </label>
+            <label className="check-row">
+              <input type="checkbox" checked={chaos} onChange={(e) => setChaos(e.target.checked)} data-testid="new-mock-chaos" /> Preparar perfiles de caos con sus errores (apagados)
+            </label>
+          </div>
+        )}
         {error && <p className="why-box">{error}</p>}
         <div className="modal-foot">
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDialog(null)}>
@@ -281,6 +342,7 @@ function ImportResult({ summary }: { summary: ImportSummary }) {
             {summary.responses} · {summary.fromExamples} de ejemplos · {summary.generated} generadas
           </dd>
         </dl>
+        {summary.extras && <ContractExtras extras={summary.extras} />}
         {summary.warnings.length > 0 && (
           <>
             <h3 className="section-label flush">Avisos</h3>
@@ -311,10 +373,52 @@ function ImportResult({ summary }: { summary: ImportSummary }) {
   );
 }
 
+/** What a contract gave beyond its routes. */
+function ContractExtras({ extras }: { extras: NonNullable<ImportSummary["extras"]> }) {
+  return (
+    <>
+      <h3 className="section-label flush">Además, desde el contrato</h3>
+      <ul className="report-list full" data-testid="import-extras">
+        {extras.contract && (
+          <li>
+            Contrato conectado en modo avisar: <span className="mono">{extras.contract}</span>
+          </li>
+        )}
+        {extras.selectable > 0 && (
+          <li>
+            {extras.selectable} {extras.selectable === 1 ? "respuesta de error responde" : "respuestas de error responden"} si la pides con la cabecera <span className="mono">X-Mockix-Respuesta: 404</span> (o el código que quieras) o con <span className="mono">?mockix_respuesta=404</span>
+          </li>
+        )}
+        {extras.crud.map((c) => (
+          <li key={c.bucket}>
+            Datos: <span className="mono">data/{c.bucket}.json</span> con {c.items} registros y CRUD en <span className="mono">{c.path}</span>
+          </li>
+        ))}
+        {extras.scenarios.map((s) => (
+          <li key={s.id}>
+            Escenario deducido <b>{s.id}</b> del campo <span className="mono">{s.field}</span>: {s.states.join(" → ")} ({s.transitions} {s.transitions === 1 ? "transición" : "transiciones"}). Revísalo en Escenarios.
+          </li>
+        ))}
+        {extras.chaos.length > 0 && <li>Perfiles de caos listos, apagados: {extras.chaos.join(", ")}</li>}
+      </ul>
+      {extras.notes.length > 0 && (
+        <>
+          <h3 className="section-label flush">No se dedujo</h3>
+          <ul className="report-list">
+            {extras.notes.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 export function Dialogs() {
   const dialog = useStore((s) => s.dialog);
   if (!dialog) return null;
-  if (dialog.kind === "new-mock") return <NewMockDialog />;
+  if (dialog.kind === "new-mock") return <NewMockDialog start={dialog.start ?? "contract"} />;
   if (dialog.kind === "new-route") return <NewRouteDialog mockId={dialog.mockId} />;
   if (dialog.kind === "delete-mock") return <DeleteMockDialog mockId={dialog.mockId} />;
   if (dialog.kind === "import-result") return <ImportResult summary={dialog.summary} />;

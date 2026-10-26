@@ -148,7 +148,15 @@ export const routeFile = z
     latency: duration.optional(),
     description: z.string().optional(),
     /** A CRUD route serves a data bucket (list, get, create, replace, update, delete) instead of fixed responses. */
-    crud: z.object({ bucket: slug, key: z.string().min(1).optional() }).strict().optional(),
+    crud: z
+      .object({
+        bucket: slug,
+        key: z.string().min(1).optional(),
+        /** The list wrapped in an object, as many APIs answer: { data: [...], total: 3 } → list: { items: data, total: total }. */
+        list: z.object({ items: z.string().min(1), total: z.string().min(1).optional() }).strict().optional(),
+      })
+      .strict()
+      .optional(),
     /** Chaos profile for this route only, or "off" to exempt it. */
     chaos: chaosRef.optional(),
     responses: z.array(responseFile).optional(),

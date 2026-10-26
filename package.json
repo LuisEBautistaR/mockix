@@ -1,6 +1,6 @@
 {
   "name": "mockix-monorepo",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Simulador de APIs local primero: núcleo, CLI y app de escritorio.",
   "author": "Luis E. Bautista",
   "license": "MIT",

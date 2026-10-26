@@ -61,7 +61,7 @@ export {
   type StartOptions,
   type UpdateResult,
 } from "./server.js";
-export { allProblems, hasProblems, loadWorkspace, type LoadOptions, type LoadedMock, type Problem, type WorkspaceLoad } from "./loader.js";
+export { allProblems, hasProblems, isWorkspace, loadWorkspace, type LoadOptions, type LoadedMock, type Problem, type WorkspaceLoad } from "./loader.js";
 export { GENERATED_TLS_DIR, ensureSelfSigned, type TlsPair } from "./tls.js";
 export { watchWorkspace, type WorkspaceWatcher } from "./watch.js";
 export { WorkspaceExistsError, writeEmptyWorkspace, writeExampleWorkspace } from "./example.js";

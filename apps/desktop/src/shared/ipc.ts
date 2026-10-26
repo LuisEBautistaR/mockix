@@ -10,6 +10,8 @@ export const IpcChannels = {
   mocksSend: "mockix:mocks-send",
   mocksCreate: "mockix:mocks-create",
   mocksDelete: "mockix:mocks-delete",
+  mocksCreateFromContract: "mockix:mocks-create-from-contract",
+  contractsPick: "mockix:contracts-pick",
   routesRead: "mockix:routes-read",
   routesWrite: "mockix:routes-write",
   routesDelete: "mockix:routes-delete",
@@ -584,6 +586,37 @@ export interface ImportSummary {
   generated: number;
   warnings: string[];
   skipped: string[];
+  /** What a contract (OpenAPI) gave beyond its routes; mirrors the core's ImportExtras. */
+  extras?: {
+    selectable: number;
+    contract: string | null;
+    crud: Array<{ bucket: string; path: string; items: number }>;
+    scenarios: Array<{ id: string; field: string; states: string[]; transitions: number }>;
+    chaos: string[];
+    notes: string[];
+  };
+}
+
+/** An OpenAPI contract picked for a new mock, before it is created: what the dialog pre-fills. */
+export interface ContractPreview {
+  fileName: string;
+  title: string;
+  name: string;
+  port: number;
+  prefix: string;
+  operations: number;
+  /** False for Swagger 2: it makes routes, but only OpenAPI 3 can be connected as the contract. */
+  connectable: boolean;
+}
+
+export interface FromContractOptions {
+  name: string;
+  port: number;
+  prefix: string;
+  /** Copy the contract to contracts/ and connect it (warn mode). */
+  contract: boolean;
+  /** Prepare chaos profiles with the contract's server errors (off until applied). */
+  chaos: boolean;
 }
 
 /** Mirrors the core's editable route draft (packages/core/src/edit.ts). */

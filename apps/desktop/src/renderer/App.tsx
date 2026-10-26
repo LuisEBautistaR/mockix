@@ -49,6 +49,7 @@ function Main() {
   const activeTab = useStore((s) => s.activeTab);
   const tabs = useStore((s) => s.tabs);
   const live = useStore((s) => s.live);
+  const setDialog = useStore((s) => s.setDialog);
 
   const tabMock = activeTab ? mocks.find((m) => m.id === activeTab.split("/")[0]) : null;
   const mock = mocks.find((m) => m.id === selected) ?? mocks[0] ?? null;
@@ -77,7 +78,18 @@ function Main() {
                   <Problems problems={workspace.problems} testId="workspace-problems" />
                 </>
               ) : (
-                <p className="note">Este workspace no tiene mocks todavía. Crea uno con el botón de servidor de la barra lateral.</p>
+                <div className="start-mock">
+                  <p className="empty-title">Crea tu primer mock</p>
+                  <p className="note">Con el contrato OpenAPI de tu API, Mockix crea las rutas y sus respuestas, conecta el contrato y deduce datos, escenarios y perfiles de caos. También puedes empezar con uno vacío.</p>
+                  <div className="toolbar">
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setDialog({ kind: "new-mock", start: "contract" })} data-testid="start-from-contract">
+                      Crear mock desde un contrato
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDialog({ kind: "new-mock", start: "empty" })} data-testid="start-empty">
+                      Mock vacío
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -27,6 +27,7 @@ const api: MockixApi = {
     send: (id, request) => ipcRenderer.invoke(IpcChannels.mocksSend, id, request),
     create: (name, port, prefix) => ipcRenderer.invoke(IpcChannels.mocksCreate, name, port, prefix),
     remove: (id) => ipcRenderer.invoke(IpcChannels.mocksDelete, id),
+    createFromContract: (options) => ipcRenderer.invoke(IpcChannels.mocksCreateFromContract, options),
     exportOpenApi: (id) => ipcRenderer.invoke(IpcChannels.mocksExport, id),
     crashHost: (id) => ipcRenderer.invoke(IpcChannels.mocksCrashHost, id),
     onList: (listener) => subscribe<MockStatus[]>(IpcChannels.mocksChanged, listener),
@@ -64,6 +65,7 @@ const api: MockixApi = {
   },
   contracts: {
     get: (mockId) => ipcRenderer.invoke(IpcChannels.contractsGet, mockId),
+    pick: () => ipcRenderer.invoke(IpcChannels.contractsPick),
     schema: (mockId, violation) => ipcRenderer.invoke(IpcChannels.contractsSchema, mockId, violation),
     setMode: (mockId, mode) => ipcRenderer.invoke(IpcChannels.contractsSetMode, mockId, mode),
     exportReport: (mockId) => ipcRenderer.invoke(IpcChannels.contractsExport, mockId),

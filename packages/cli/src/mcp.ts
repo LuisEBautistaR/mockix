@@ -7,13 +7,13 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { LocalBackend, createMcpServer, loadWorkspace, type AuditEntry } from "@mockix/core";
+import { LocalBackend, createMcpServer, isWorkspace, loadWorkspace, type AuditEntry } from "@mockix/core";
 import type { Io } from "./main.js";
 
 export async function mcpCommand(cmd: { dir: string; readOnly: boolean }, io: Io, stop: AbortSignal, version: string): Promise<number> {
   const dir = resolve(cmd.dir);
   const load = await loadWorkspace(dir);
-  if (load.problems.some((p) => p.file === "mockix.workspace.yaml" && p.line === null)) {
+  if (!(await isWorkspace(dir))) {
     io.err(`mockix: ${dir} no es un workspace de Mockix (crea uno con «mockix init»)`);
     return 1;
   }

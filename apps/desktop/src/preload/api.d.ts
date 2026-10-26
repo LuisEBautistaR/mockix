@@ -6,7 +6,9 @@ import type {
   ChaosProfileDraft,
   ContractInfo,
   ContractModeView,
+  ContractPreview,
   ExchangeSummary,
+  FromContractOptions,
   GrpcCallResult,
   ImportSummary,
   LinkRequest,
@@ -53,6 +55,8 @@ export interface MockixApi {
     create(name: string, port: number, prefix: string): Promise<Outcome<null>>;
     /** Stops the mock and moves mocks/<id>/ (and the Sendix environment it wrote) to the OS trash. */
     remove(id: string): Promise<Outcome<{ removed: string[] }>>;
+    /** Creates a mock from the contract picked with contracts.pick(). */
+    createFromContract(options: FromContractOptions): Promise<Outcome<ImportSummary>>;
     /** Asks where to save and writes the mock as OpenAPI 3.1; null when cancelled. */
     exportOpenApi(id: string): Promise<Outcome<{ file: string } | null>>;
     /** Test builds only (MOCKIX_TEST=1); answers UNKNOWN_METHOD otherwise. */
@@ -104,6 +108,8 @@ export interface MockixApi {
   contracts: {
     /** Coverage and the mock's own responses from the files, plus what the running mock counted. */
     get(mockId: string): Promise<Outcome<ContractInfo>>;
+    /** Asks for an OpenAPI file for a new mock (main keeps it); null when cancelled. */
+    pick(): Promise<Outcome<ContractPreview | null>>;
     /** The schema a violation was checked against, as YAML. */
     schema(mockId: string, violation: ViolationView): Promise<Outcome<string>>;
     /** Writes contract.mode in mock.yaml. */

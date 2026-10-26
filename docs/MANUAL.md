@@ -159,15 +159,34 @@ Una **ruta CRUD** sobre un bucket te da una API completa sin escribir respuestas
 | `PUT` / `PATCH /inventario/:id` | Reemplaza o cambia |
 | `DELETE /inventario/:id` | Borra |
 
+Si tu API devuelve la lista dentro de un objeto, la ruta CRUD la envuelve igual: `crud: { bucket: clientes, key: clienteId, list: { items: data, total: total } }` responde `{ "data": [...], "total": 3 }`.
+
 Las plantillas también leen los buckets: `dataFind 'productos' 'id' (urlParam 'id') 'nombre'`.
 
 ## 7. Importar y exportar
+
+### Crear un mock desde un contrato
+
+**Nuevo mock → Desde un contrato OpenAPI → Elegir contrato…** (o `mockix import contrato.yaml`) crea el mock completo a partir de un OpenAPI 3 o Swagger 2. El nombre, el puerto y el prefijo se proponen del contrato (`info.title` y `servers`) y se pueden cambiar antes de crear.
+
+| Qué | De dónde sale | Cómo queda |
+|---|---|---|
+| Rutas y respuestas | Cada operación y cada código documentado | Una ruta por operación. El cuerpo sale del ejemplo o del esquema, como plantilla con datos falsos. Si la ruta tiene un `{id}` y el ejemplo trae ese campo, responde con el id pedido. |
+| Elegir la respuesta | Cada código documentado | Las respuestas que no son la normal responden con la cabecera `X-Mockix-Respuesta: <código>` o con `?mockix_respuesta=<código>`. |
+| Contrato | El mismo archivo | Copiado a `contracts/` (o reutilizado si ya está ahí) y conectado en `mock.yaml` en modo `warn`. Solo OpenAPI 3: un Swagger 2 no se conecta. |
+| Datos y CRUD | Un recurso con `GET /x`, `GET /x/{id}` y al menos un `POST /x`, `PUT`, `PATCH` o `DELETE /x/{id}` | Un bucket `data/x.json` con los ejemplos o con 3 registros generados, y una ruta CRUD. Si la lista viene envuelta (`{ data: [...], total }`), la ruta CRUD la envuelve igual. Sus errores (404, 409) son los del CRUD, no los del contrato. |
+| Escenarios | Un campo `estado`, `status`, `estatus`, `state`, `situacion` o `etapa` con `enum`, y acciones `POST/PUT/PATCH /x/{id}/<acción>` (o `DELETE /x/{id}` si hay un estado de cancelación) | `scenarios/x.yaml` con los estados en el orden del `enum`. Cada acción lleva al estado cuyo nombre se le parece (`pago` → `pagado`). `GET /x/{id}` responde el estado actual, con el valor tal como lo escribe el contrato. Un recurso con escenario no se convierte en CRUD. |
+| Perfiles de caos | Los códigos 5xx documentados (500 y 503 si no hay) | `chaos/<mock>.yaml` con `<mock>-lenta`, `<mock>-inestable` y `<mock>-caida`, apagados. |
+
+Lo deducido aparece en el informe, y también por qué algo no se dedujo. En la terminal, `--no-contract` no conecta el contrato y `--no-chaos` no prepara los perfiles de caos; en la app son dos casillas del diálogo.
+
+### Importar otros formatos
 
 **Importar** (icono de descarga en la barra lateral, o `mockix import <archivo>`) crea un mock nuevo y te muestra un informe de lo que se convirtió y lo que no.
 
 | Desde | Qué obtienes |
 |---|---|
-| **OpenAPI 3 o Swagger 2** | Una ruta por operación y una respuesta por código. El cuerpo sale del ejemplo del contrato o, si no hay, de datos falsos según el esquema. El prefijo sale de `servers`. |
+| **OpenAPI 3 o Swagger 2** | Todo lo de [Crear un mock desde un contrato](#crear-un-mock-desde-un-contrato). |
 | **Postman v2.x o Sendix** | Cada petición con ejemplos guardados es una ruta, y cada ejemplo una respuesta. |
 | **HAR** (del navegador) | Rutas a partir del tráfico, sin credenciales. |
 | **Mockoon** | Rutas, respuestas, reglas, buckets, CRUD y proxy. |

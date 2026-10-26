@@ -291,7 +291,7 @@ async function buildRoute(
     else if (!Array.isArray(data)) problems.push(at(`crud.bucket: data/${parsed.crud.bucket}.json debe ser una lista para una ruta CRUD`));
     if (problems.length) return { route: null, problems };
     return {
-      route: { id, file: relFile, method: "ANY", path: parsed.path, mode: "rules", latencyMs: parsed.latency ?? 0, crud: { bucket: parsed.crud.bucket, key: parsed.crud.key ?? "id" }, responses: [] },
+      route: { id, file: relFile, method: "ANY", path: parsed.path, mode: "rules", latencyMs: parsed.latency ?? 0, crud: { bucket: parsed.crud.bucket, key: parsed.crud.key ?? "id", ...(parsed.crud.list ? { list: parsed.crud.list } : {}) }, responses: [] },
       problems,
     };
   }
@@ -787,6 +787,11 @@ async function loadMock(workspaceDir: string, name: string, opts: LoadOptions, s
       },
     },
   };
+}
+
+/** True when the folder has a mockix.workspace.yaml (valid or not: its problems are a load's business). */
+export async function isWorkspace(dir: string): Promise<boolean> {
+  return exists(join(resolve(dir), WORKSPACE_FILE));
 }
 
 /** Loads every mock of a workspace. Never throws for content problems: they are returned. */

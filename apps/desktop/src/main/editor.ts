@@ -2,12 +2,28 @@ import { shell } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, dirname } from "node:path";
 import { stringify } from "yaml";
-import { EditError, ImportError, createMock, deleteMock, deleteRoute, exportOpenApi, importSource, previewTemplate, readRoute, writeImported, writeRoute, type RouteDocument, type RouteDraft } from "@mockix/core";
-import type { ImportSummary } from "@shared/ipc";
+import { EditError, ImportError, createMock, deleteMock, deleteRoute, exportOpenApi, importSource, previewTemplate, readRoute, writeImported, writeRoute, type ImportResult, type RouteDocument, type RouteDraft, type WrittenImport } from "@mockix/core";
+import type { ContractPreview, FromContractOptions, ImportSummary } from "@shared/ipc";
 import { ErrorCodes, type Outcome } from "@shared/rpc";
 import type { WorkspaceService } from "./workspace";
 
 const noWorkspace: Outcome<never> = { ok: false, error: { code: ErrorCodes.noWorkspace, message: "No workspace is open" } };
+
+function summary(written: WrittenImport): ImportSummary {
+  const r = written.report;
+  return {
+    name: written.name,
+    format: r.format,
+    source: r.source,
+    routes: written.routes,
+    responses: r.responses,
+    fromExamples: r.fromExamples,
+    generated: r.generated,
+    warnings: r.warnings,
+    skipped: r.skipped,
+    ...(r.extras ? { extras: r.extras } : {}),
+  };
+}
 
 function fromError(err: unknown): Outcome<never> {
   if (err instanceof ImportError) return { ok: false, error: { code: "IMPORT_FAILED", message: err.message } };
@@ -82,11 +98,44 @@ export class WorkspaceEditor {
   async importFile(file: string): Promise<Outcome<ImportSummary>> {
     const outcome = await this.#run(async (dir) => {
       const text = await readFile(file, "utf8");
-      const written = await writeImported(dir, await importSource(text, basename(file), { baseDir: dirname(file) }));
-      const r = written.report;
-      return { name: written.name, format: r.format, source: r.source, routes: written.routes, responses: r.responses, fromExamples: r.fromExamples, generated: r.generated, warnings: r.warnings, skipped: r.skipped };
+      return summary(await writeImported(dir, await importSource(text, basename(file), { baseDir: dirname(file) })));
     });
     return outcome;
+  }
+
+  /** The contract picked in «Nuevo mock», kept in main: the renderer never hands a path back. */
+  #picked: { result: ImportResult } | null = null;
+
+  /** Reads an OpenAPI contract for a new mock and suggests its name, port and prefix. */
+  async pickContract(file: string): Promise<Outcome<ContractPreview>> {
+    const dir = this.#workspace.state.dir;
+    if (!dir) return noWorkspace;
+    try {
+      const text = await readFile(file, "utf8");
+      const result = await importSource(text, basename(file), { baseDir: dirname(file) });
+      if (result.report.format !== "openapi") {
+        return { ok: false, error: { code: "NOT_A_CONTRACT", message: "Ese archivo no es un contrato OpenAPI. Para colecciones de Postman, HAR o Mockoon usa «Importar»." } };
+      }
+      this.#picked = { result };
+      const used = new Set((this.#workspace.current?.mocks ?? []).flatMap((m) => (m.config ? [m.config.port] : [])));
+      let port = result.mock.port;
+      while (used.has(port)) port++;
+      const title = result.report.source.replace(/\s*\([^)]*\)$/, "");
+      return { ok: true, value: { fileName: basename(file), title, name: result.mock.name, port, prefix: result.mock.prefix, operations: result.report.routes, connectable: result.contractSource !== undefined } };
+    } catch (err) {
+      return fromError(err);
+    }
+  }
+
+  /** Creates the mock from the picked contract: routes, CRUD, scenarios, the contract connected and chaos prepared. */
+  createFromContract(options: FromContractOptions): Promise<Outcome<ImportSummary>> {
+    const picked = this.#picked;
+    if (!picked) return Promise.resolve({ ok: false, error: { code: "NO_CONTRACT", message: "Elige primero un contrato" } });
+    return this.#run(async (dir) => {
+      const written = await writeImported(dir, picked.result, options);
+      this.#picked = null;
+      return summary(written);
+    });
   }
 
   /** Writes a mock as OpenAPI 3.1 YAML. */

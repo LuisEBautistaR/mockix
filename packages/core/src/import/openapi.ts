@@ -3,12 +3,14 @@
  *
  * Import: one route per operation (folder = first tag), one response per
  * status code. A response body comes from the example when there is one, and
- * otherwise from the schema as a template with fake data.
+ * otherwise from the schema as a template with fake data. openapi-extras.ts
+ * adds the rest (picking a response, CRUD, scenarios, chaos errors).
  */
 import SwaggerParser from "@apidevtools/swagger-parser";
 import type { MockConfig } from "../runtime.js";
 import type { ResponseDraft } from "../edit.js";
 import { ImportError, escapeMustaches, newReport, slugify, type ImportResult, type ImportedRoute } from "./model.js";
+import { addPicker, enrichOpenApi, type SourceOperation } from "./openapi-extras.js";
 import { templateFromSchema } from "./schema-template.js";
 
 type Obj = Record<string, unknown>;
@@ -75,7 +77,9 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
   const info = isObj(doc["info"]) ? doc["info"] : {};
   const report = newReport("openapi", typeof info["title"] === "string" ? `${info["title"]} (${source})` : source);
   const routes: ImportedRoute[] = [];
+  const ops: SourceOperation[] = [];
   const usedIds = new Set<string>();
+  let selectable = 0;
 
   for (const [path, item] of Object.entries(isObj(doc["paths"]) ? doc["paths"] : {})) {
     if (!isObj(item)) continue;
@@ -90,10 +94,12 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
       }
       // 2xx first: the first success becomes the default response.
       codes.sort(([a], [b]) => (a.startsWith("2") === b.startsWith("2") ? Number(a) - Number(b) : a.startsWith("2") ? -1 : 1));
+      let success: SourceOperation["success"] = null;
       for (const [code, raw] of codes) {
         const response = isObj(raw) ? raw : {};
         const media = mediaOf(response, swagger2);
         const status = Number(code);
+        if (!success && status >= 200 && status < 300) success = { schema: media.schema, example: media.example, hasExample: media.hasExample };
         // The first success is "ok"; the rest are named by their code (r-201, error-404…).
         const firstSuccess = status < 300 && responses.every((r) => (r.status ?? 200) >= 300);
         const draft: ResponseDraft = { id: firstSuccess ? "ok" : `${status < 400 ? "r" : "error"}-${code}`, status, body: { kind: "none" } };
@@ -113,6 +119,7 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
       }
       if (responses.length === 0) responses.push({ id: "ok", status: 200, body: { kind: "inline", text: "{}\n" } });
       responses[0]!.default = true;
+      selectable += addPicker(responses);
 
       let id = typeof op["operationId"] === "string" ? slugify(op["operationId"].replace(/([a-z])([A-Z])/g, "$1-$2"), "") : "";
       if (!id) id = slugify(`${method}-${path.replace(/[{}]/g, "")}`, `${method}-ruta`);
@@ -123,10 +130,12 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
       usedIds.add(unique);
 
       const description = [op["summary"], op["description"]].find((d) => typeof d === "string" && d) as string | undefined;
-      routes.push({
+      const route: ImportedRoute = {
         folder: tag,
         draft: { id: unique, method: method.toUpperCase(), path: toMockPath(path), ...(description ? { description } : {}), responses },
-      });
+      };
+      routes.push(route);
+      ops.push({ path, method, op, route, success });
       report.routes++;
       report.responses += responses.length;
     }
@@ -134,8 +143,23 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
   if (isObj(doc["webhooks"]) && Object.keys(doc["webhooks"]).length) report.skipped.push("webhooks: Mockix los envía como callbacks de una respuesta; añádelos a mano donde toque");
   if (routes.length === 0) report.warnings.push("El documento no tiene operaciones");
 
+  const enriched = enrichOpenApi(ops, routes, report, selectable);
+  report.extras = enriched.extras;
+  if (swagger2) report.extras.notes.push("Es Swagger 2.0: no se conecta como contrato porque la revisión de peticiones necesita OpenAPI 3. Si lo conviertes a OpenAPI 3 y lo vuelves a importar, queda conectado.");
+  // A CRUD route stands for several operations.
+  report.routes = enriched.routes.length;
+
   return {
-    mock: { name: slugify(typeof info["title"] === "string" ? info["title"] : "", "openapi"), port: 3000, prefix: prefixFrom(doc), variables: {}, buckets: {}, routes },
+    mock: {
+      name: slugify(typeof info["title"] === "string" ? info["title"] : "", "openapi"),
+      port: 3000,
+      prefix: prefixFrom(doc),
+      variables: {},
+      buckets: enriched.buckets,
+      routes: enriched.routes,
+      extraFiles: enriched.extraFiles,
+      serverErrors: enriched.serverErrors,
+    },
     report,
   };
 }

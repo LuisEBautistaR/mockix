@@ -46,7 +46,7 @@ export const runtimeRoute = z.object({
   path: z.string(),
   mode: z.enum(RESPONSE_MODES),
   latencyMs: z.number().min(0),
-  crud: z.object({ bucket: z.string(), key: z.string() }).nullable().default(null),
+  crud: z.object({ bucket: z.string(), key: z.string(), list: z.object({ items: z.string(), total: z.string().optional() }).optional() }).nullable().default(null),
   /** Chaos profile resolved from the route and its folders: a name, null (exempt) or undefined (the mock's). */
   chaos: z.string().nullable().optional(),
   responses: z.array(runtimeResponse),

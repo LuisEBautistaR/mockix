@@ -11,6 +11,7 @@ import {
   contractCoverage,
   exportOpenApi,
   importSource,
+  isWorkspace,
   loadWorkspace,
   writeExampleWorkspace,
   writeImported,
@@ -77,9 +78,9 @@ async function init(dir: string, io: Io): Promise<number> {
   }
 }
 
-async function importFile(command: { file: string; dir: string; format: ImportFormat | null; name: string | null; port: number | null; prefix: string | null }, io: Io): Promise<number> {
+async function importFile(command: { file: string; dir: string; format: ImportFormat | null; name: string | null; port: number | null; prefix: string | null; contract: boolean; chaos: boolean }, io: Io): Promise<number> {
   const load = await loadWorkspace(command.dir);
-  if (load.problems.some((p) => p.file === "mockix.workspace.yaml" && p.line === null)) {
+  if (!(await isWorkspace(command.dir))) {
     io.err(`mockix: ${resolve(command.dir)} no es un workspace de Mockix (crea uno con «mockix init»)`);
     return 1;
   }
@@ -100,10 +101,21 @@ async function importFile(command: { file: string; dir: string; format: ImportFo
       ...(command.name ? { name: command.name } : {}),
       ...(command.port !== null ? { port: command.port } : {}),
       ...(command.prefix !== null ? { prefix: command.prefix } : {}),
+      contract: command.contract,
+      chaos: command.chaos,
     });
     const r = written.report;
     io.out(`Mock "${written.name}" creado desde ${r.format} (${r.source}).`);
     io.out(`  ${written.routes} rutas, ${r.responses} respuestas: ${r.fromExamples} de ejemplos, ${r.generated} generadas.`);
+    const x = r.extras;
+    if (x) {
+      if (x.selectable) io.out(`  Elegir respuesta: ${x.selectable} respuestas de error responden con la cabecera X-Mockix-Respuesta: <código> o ?mockix_respuesta=<código>.`);
+      if (x.contract) io.out(`  Contrato: ${x.contract}, conectado en modo avisar.`);
+      for (const c of x.crud) io.out(`  Datos: data/${c.bucket}.json (${c.items} registros) con CRUD en ${c.path}.`);
+      for (const s of x.scenarios) io.out(`  Escenario deducido: ${s.id}, del campo ${s.field} (${s.states.join(" → ")}), ${s.transitions} transiciones. Revísalo.`);
+      if (x.chaos.length) io.out(`  Caos preparado (apagado): ${x.chaos.join(", ")}.`);
+      for (const n of x.notes) io.out(`  Nota: ${n}`);
+    }
     for (const w of r.warnings) io.out(`  Aviso: ${w}`);
     for (const s of r.skipped) io.out(`  Omitido: ${s}`);
     io.out(`Siguiente paso: mockix serve ${command.dir === "." ? "" : command.dir} -m ${written.name}`.replace("  ", " "));

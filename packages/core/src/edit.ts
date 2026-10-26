@@ -48,7 +48,7 @@ export interface RouteDraft {
   mode?: string;
   latency?: number;
   description?: string;
-  crud?: { bucket: string; key?: string | undefined };
+  crud?: { bucket: string; key?: string | undefined; list?: { items: string; total?: string | undefined } | undefined };
   responses?: ResponseDraft[];
 }
 
@@ -359,6 +359,8 @@ export interface MockExtras {
   variables?: Record<string, string>;
   description?: string;
   grpc?: { port: number };
+  /** OpenAPI contract the mock is checked against (a path inside the workspace). */
+  contract?: { file: string; mode?: "off" | "warn" | "strict" };
 }
 
 /** Creates mocks/<name>/mock.yaml and routes/ (and lists it in mockix.workspace.yaml when that file lists mocks). */
@@ -376,6 +378,7 @@ export async function createMock(workspaceDir: string, name: string, port: numbe
   if (extras.variables && Object.keys(extras.variables).length) settings["variables"] = extras.variables;
   if (extras.description) settings["description"] = extras.description;
   if (extras.grpc) settings["grpc"] = { port: extras.grpc.port };
+  if (extras.contract) settings["contract"] = { file: extras.contract.file, mode: extras.contract.mode ?? "warn" };
   const parsed = mockFile.safeParse(settings);
   if (!parsed.success) throw new EditError("INVALID", "The mock settings are not valid", issuesOf(parsed.error));
   await mkdir(join(root, "routes"), { recursive: true });

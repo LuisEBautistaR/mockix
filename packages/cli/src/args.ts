@@ -16,7 +16,7 @@ export type Command =
       failOnViolation: boolean;
     }
   | { kind: "validate"; dir: string; failOnViolation: boolean }
-  | { kind: "import"; file: string; dir: string; format: "openapi" | "postman" | "har" | "mockoon" | null; name: string | null; port: number | null; prefix: string | null }
+  | { kind: "import"; file: string; dir: string; format: "openapi" | "postman" | "har" | "mockoon" | null; name: string | null; port: number | null; prefix: string | null; contract: boolean; chaos: boolean }
   | { kind: "export"; dir: string; mock: string; out: string | null }
   | { kind: "record"; dir: string; target: string; port: number; host: string | null; prefix: string; convert: string | null }
   | { kind: "convert"; file: string; dir: string; name: string | null; into: string | null; prefix: string }
@@ -59,6 +59,8 @@ Opciones de import:
       --name <n>       Nombre del mock (por defecto, el título de la fuente)
   -p, --port <n>       Puerto del mock nuevo
       --prefix </x>    Prefijo del mock; en HAR, la parte de la ruta que se quita
+      --no-contract    Con un OpenAPI: no lo copia a contracts/ ni lo conecta al mock
+      --no-chaos       Con un OpenAPI: no prepara perfiles de caos con sus errores
 
 Opciones de export:
   -o, --out <archivo>  Archivo de salida (por defecto, la salida estándar)
@@ -90,10 +92,13 @@ function describeParseError(err: unknown): string {
 
 /** Parses argv (without node and script). Never throws. */
 export function parseCli(argv: readonly string[]): ParseResult {
+  // --contract and --chaos take a value (serve), so parseArgs cannot negate them: import's --no-contract and --no-chaos are read here.
+  const noContract = argv.includes("--no-contract");
+  const noChaos = argv.includes("--no-chaos");
   let parsed;
   try {
     parsed = parseArgs({
-      args: [...argv],
+      args: argv.filter((a) => a !== "--no-contract" && a !== "--no-chaos"),
       allowPositionals: true,
       allowNegative: true,
       strict: true,
@@ -129,7 +134,7 @@ export function parseCli(argv: readonly string[]): ParseResult {
   if (values.help || positionals.length === 0) return { ok: true, command: { kind: "help" } };
 
   const [name, dirArg, ...rest] = positionals;
-  const importOnly = values.format !== undefined || values.name !== undefined || values.prefix !== undefined;
+  const importOnly = values.format !== undefined || values.name !== undefined || values.prefix !== undefined || noContract || noChaos;
   const portOf = (fallback: number): number | string => {
     if (values.port === undefined) return fallback;
     if (!/^\d{1,5}$/.test(values.port) || Number(values.port) > 65535) return `Puerto no válido: ${values.port}`;
@@ -181,7 +186,17 @@ export function parseCli(argv: readonly string[]): ParseResult {
     if (values.prefix !== undefined && !/^(\/[^/\s?#]+)*$/.test(values.prefix)) return { ok: false, message: '--prefix: algo como "/v1"' };
     return {
       ok: true,
-      command: { kind: "import", file: dirArg, dir: rest[0] ?? ".", format: format as "openapi" | null, name: values.name ?? null, port, prefix: values.prefix ?? null },
+      command: {
+        kind: "import",
+        file: dirArg,
+        dir: rest[0] ?? ".",
+        format: format as "openapi" | null,
+        name: values.name ?? null,
+        port,
+        prefix: values.prefix ?? null,
+        contract: !noContract,
+        chaos: !noChaos,
+      },
     };
   }
   if (name === "export") {

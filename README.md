@@ -6,7 +6,7 @@ Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de e
 
 **¿Primera vez?** Empieza por la [guía rápida](docs/GUIA-RAPIDA.md) (también en [protohub.digital/mockix/guia](https://protohub.digital/mockix/guia/)). Cada función se explica en el [manual de uso](docs/MANUAL.md).
 
-Estado: **0.1.2 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
+Estado: **0.1.3 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
@@ -26,11 +26,11 @@ Estado: **0.1.2 publicada**: instalador de Windows con auto-actualización en [G
 |---|---|
 | **Windows** | `Mockix-<versión>-setup.exe` de GitHub Releases. Instala por usuario (sin administrador), registra `mockix://` y se actualiza solo. |
 | **CLI** | `npm i -g @fulerbdev/mockix`, con Node 22 o superior. Instala el comando `mockix`. El nombre lleva prefijo porque npm rechaza `mockix` por parecido a otro paquete. |
-| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.2` |
+| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.3` |
 
 **Docker:**
-- **Etiquetas:** una por versión (`v0.1.2`) y `latest`, que apunta a la más reciente.
-- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.2 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
+- **Etiquetas:** una por versión (`v0.1.3`) y `latest`, que apunta a la más reciente.
+- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.3 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
 - **Imagen:** parte de `distroless/nodejs24` (sin shell ni gestor de paquetes) y corre como usuario sin privilegios.
 - **Escritura:** con `--read-only` solo escribe en el volumen montado (`.mockix/` del workspace).
 - **Mocks:** sirve los de `/mocks` escuchando en `0.0.0.0`; el aviso que lo dice al arrancar es normal dentro del contenedor, que solo es accesible por los puertos que publiques con `-p`. Publica el puerto de cada mock (`-p 3001:3001`).
@@ -174,6 +174,7 @@ Los cuerpos de texto, las cabeceras y los callbacks son plantillas Handlebars. P
   - `GET` lista con filtros por campo (`?sucursal=cdmx`), orden (`?sort=stock&order=desc`), paginación (`?limit=20&page=2`) y `X-Total-Count`.
   - `GET /:id`, `POST` (genera el id si falta; responde `201` con `Location`; `409` si ya existe), `PUT`, `PATCH` y `DELETE`.
   - Responde `405` con `Allow` para los métodos que no aplican.
+  - Con `list: { items: data, total: total }` la lista va envuelta en un objeto (`{ "data": [...], "total": 3 }`), como responden muchas APIs.
 - **Callbacks:** van en cada respuesta: `callbacks: [{ url, method, headers, body, delay }]`. Se envían después de responder y solo a los hosts de `mock.yaml` → `callbacks.allow`, para que un mock no sirva de trampolín. El resultado (estado o error) aparece en el log.
 - **Proxy parcial:** se activa en `mock.yaml` → `proxy: { target, keepPrefix, insecure, headers }`. Lo que ninguna ruta atiende (o lo que deja pasar una ruta `fallback`) va a la API real con su método, ruta, query, cabeceras y cuerpo. Si la API real no responde, contesta `502` con `X-Mockix: proxy-error`.
 - **API de control:** con `--admin-token` (o `MOCKIX_ADMIN_TOKEN`, mínimo 12 caracteres) se activa bajo `/__mockix/` en el mismo puerto.
@@ -187,10 +188,19 @@ Cada importación crea un mock nuevo en `mocks/<nombre>/` con un informe de lo q
 
 | Fuente | Qué se obtiene |
 |---|---|
-| **OpenAPI 3.0/3.1 y Swagger 2** | Una ruta por operación (`{id}` pasa a `:id`), en la carpeta de su primera etiqueta. Una respuesta por código, con la primera 2xx por defecto. El cuerpo sale del ejemplo; si no hay, del esquema, como plantilla con datos falsos según el tipo, el formato y el nombre del campo (`email`, `nombre`, `telefono`…). El prefijo sale de `servers[0]`. |
+| **OpenAPI 3.0/3.1 y Swagger 2** | Una ruta por operación (`{id}` pasa a `:id`), en la carpeta de su primera etiqueta. Una respuesta por código, con la primera 2xx por defecto; las demás responden con `X-Mockix-Respuesta: <código>` o `?mockix_respuesta=<código>`. El cuerpo sale del ejemplo; si no hay, del esquema, como plantilla con datos falsos según el tipo, el formato y el nombre del campo (`email`, `nombre`, `telefono`…). El prefijo sale de `servers[0]`. Además, ver abajo. |
 | **Postman v2.0/v2.1 y Sendix** | Cada petición con ejemplos guardados es una ruta, y cada ejemplo una respuesta. Lo que distingue a las peticiones originales de los ejemplos (variable de ruta, query o cabecera `X-…`) se convierte en la regla. Las variables de la colección pasan a ser variables del mock (`{{moneda}}` se convierte en `{{getVar 'moneda'}}`) y las dinámicas conocidas (`{{$guid}}`, `{{$randomEmail}}`…) en helpers. La ruta de `{{baseUrl}}` se usa como prefijo. Las peticiones WebSocket o gRPC de Sendix se omiten hasta M8. |
 | **HAR** | Infiere parámetros a partir de valores con forma de id (números, UUID, hashes, `prd_7Qm2`, `CAF-VER-500`), agrupa las respuestas distintas de una ruta y deduce sus reglas. Quita cabeceras y parámetros con credenciales, cambia tokens, correos y teléfonos por datos falsos y escapa los `{{` literales. Es el mismo conversor que usará la grabación (M5). |
 | **Entorno de Mockoon** | Rutas, respuestas, reglas (y/o, negación), modos aleatorio, secuencial y fallback, latencias, cabeceras del entorno, data buckets, rutas CRUD, prefijo, CORS y proxy. Las respuestas con helpers sin equivalente se sirven como texto, con aviso. Las rutas WebSocket se omiten hasta M8. |
+
+**Un mock completo desde un contrato.** Con un OpenAPI, la importación (y **Nuevo mock → Desde un contrato OpenAPI** en el escritorio) también:
+- **Conecta el contrato:** lo copia a `contracts/` (o reutiliza el que ya está ahí con el mismo contenido) y lo pone en `mock.yaml` en modo `warn`. Solo OpenAPI 3; un Swagger 2 no se conecta y el informe lo dice. `--no-contract` lo evita.
+- **Datos y CRUD:** un recurso con `GET /x`, `GET /x/{id}` y alguna escritura (`POST /x`, `PUT`, `PATCH` o `DELETE /x/{id}`) pasa a un bucket con los ejemplos (o 3 registros generados del esquema) y una ruta CRUD; una lista envuelta en `{ data, total }` usa `crud.list`.
+- **Escenarios:** un campo `estado`, `status`, `estatus`, `state`, `situacion` o `etapa` con `enum`, más acciones `POST/PUT/PATCH /x/{id}/<acción>` (o `DELETE` hacia un estado de cancelación), da `scenarios/x.yaml`. Los estados siguen el orden del `enum` y cada acción va al estado que más se le parece (`pago` → `pagado`). `GET /x/{id}` responde el estado actual con el valor original del contrato.
+- **Caos:** `chaos/<mock>.yaml` con `<mock>-lenta`, `<mock>-inestable` y `<mock>-caida`, que usan los 5xx documentados, sin aplicar. `--no-chaos` lo evita.
+- **Ids:** un ejemplo con el campo del `{id}` de la ruta responde con el id pedido.
+
+El informe dice qué se dedujo y por qué no se dedujo lo demás.
 
 - Se respeta el orden de la fuente (`order` en `mock.yaml`), porque responde la primera ruta que coincide.
 - Si el puerto de la fuente ya lo usa otro mock del workspace, el nuevo recibe el siguiente libre.
@@ -496,6 +506,14 @@ Opciones de serve:
       --contract <modo>  off, warn o strict: cambia el modo del contrato de mock.yaml
       --report <archivo> Al detener, escribe las violaciones del contrato (.xml JUnit o .json)
       --fail-on-violation  Termina con código 2 si hubo violaciones (también en validate)
+
+Opciones de import:
+      --format <f>     openapi, postman, har o mockoon (por defecto, se detecta)
+      --name <n>       Nombre del mock (por defecto, el título de la fuente)
+  -p, --port <n>       Puerto del mock nuevo
+      --prefix </x>    Prefijo del mock; en HAR, la parte de la ruta que se quita
+      --no-contract    Con un OpenAPI: no lo copia a contracts/ ni lo conecta al mock
+      --no-chaos       Con un OpenAPI: no prepara perfiles de caos con sus errores
 
 Opciones de record, convert y replay:
       --target <url>   API real a la que se reenvía todo (record)

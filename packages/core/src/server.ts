@@ -422,7 +422,9 @@ export async function startMock(definition: unknown, options: StartOptions = {})
           const p = typeof page === "string" && /^\d+$/.test(page) ? Math.max(1, Number(page)) : 1;
           items = items.slice((p - 1) * size, p * size);
         }
-        return json(200, items, { "X-Total-Count": String(total) });
+        const envelope = route.crud!.list;
+        const value = envelope ? { [envelope.items]: items, ...(envelope.total ? { [envelope.total]: total } : {}) } : items;
+        return json(200, value, { "X-Total-Count": String(total) });
       }
       if (method === "POST") {
         if (!isObject) return json(400, { error: "El cuerpo debe ser un objeto JSON" });

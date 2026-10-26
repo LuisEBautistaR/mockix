@@ -4,7 +4,7 @@
  * through window.mockix; this store only keeps what the UI shows.
  */
 import { create } from "zustand";
-import type { AgentsState, CallbackLog, ImportSummary, MessageLog, MockStatus, ProbeResult, RequestLog, RouteDocument, RouteDraft, Theme, WorkspaceState } from "@shared/ipc";
+import type { AgentsState, CallbackLog, FromContractOptions, ImportSummary, MessageLog, MockStatus, ProbeResult, RequestLog, RouteDocument, RouteDraft, Theme, WorkspaceState } from "@shared/ipc";
 import type { RpcError } from "@shared/rpc";
 
 export interface LogRow extends RequestLog {
@@ -42,7 +42,7 @@ export interface Draft {
 }
 
 export type View = "mocks" | "settings" | "recordings" | "scenarios" | "chaos" | "contracts" | "agents";
-export type Dialog = { kind: "new-mock" } | { kind: "new-route"; mockId: string } | { kind: "delete-mock"; mockId: string } | { kind: "quick-open" } | { kind: "import-result"; summary: ImportSummary } | null;
+export type Dialog = { kind: "new-mock"; start?: "contract" | "empty" } | { kind: "new-route"; mockId: string } | { kind: "delete-mock"; mockId: string } | { kind: "quick-open" } | { kind: "import-result"; summary: ImportSummary } | null;
 
 const MAX_LOG = 1000;
 const tabKey = (t: Tab) => `${t.mockId}/${t.routeId}`;
@@ -83,6 +83,8 @@ interface State {
   save(key: string): Promise<boolean>;
   revert(key: string): void;
   createMock(name: string, port: number, prefix: string): Promise<string | null>;
+  /** Creates a mock from the contract picked in the dialog and shows the report; returns the error message, or null. */
+  createFromContract(options: FromContractOptions): Promise<string | null>;
   /** Moves the mock folder to the OS trash; returns the error message, or null. */
   deleteMock(mockId: string): Promise<string | null>;
   importFile(): Promise<void>;
@@ -240,6 +242,13 @@ export const useStore = create<State>((set, get) => ({
     const outcome = await window.mockix.mocks.create(name, port, prefix);
     if (!outcome.ok) return outcome.error.message;
     set({ selectedMock: name });
+    return null;
+  },
+
+  async createFromContract(options) {
+    const outcome = await window.mockix.mocks.createFromContract(options);
+    if (!outcome.ok) return outcome.error.message;
+    set({ dialog: { kind: "import-result", summary: outcome.value }, selectedMock: outcome.value.name, view: "mocks" });
     return null;
   },
 

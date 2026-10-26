@@ -4,6 +4,7 @@ import {
   MockStartError,
   RecordingWriter,
   convertRecording,
+  isWorkspace,
   loadWorkspace,
   mergeIntoMock,
   nameFromUrl,
@@ -32,7 +33,7 @@ function locate(dir: string, file: string): string {
 
 async function workspaceOk(dir: string, io: Io): Promise<boolean> {
   const load = await loadWorkspace(dir);
-  if (load.problems.some((p) => p.file === "mockix.workspace.yaml" && p.line === null)) {
+  if (!(await isWorkspace(dir))) {
     io.err(`mockix: ${resolve(dir)} no es un workspace de Mockix (crea uno con «mockix init»)`);
     return false;
   }

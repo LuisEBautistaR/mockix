@@ -34,6 +34,8 @@ export interface ImportedMock {
   protoSources?: Array<{ from: string; to: string; service: string; extraFile: string }> | undefined;
   /** gRPC server of the mock. */
   grpc?: { port: number } | undefined;
+  /** 5xx codes the source documents (OpenAPI): what the prepared chaos profiles answer with. */
+  serverErrors?: number[] | undefined;
 }
 
 export interface ImportReport {
@@ -50,11 +52,31 @@ export interface ImportReport {
   skipped: string[];
   /** Things converted with a caveat. */
   warnings: string[];
+  /** What a contract (OpenAPI) gave beyond its routes; absent for other formats. */
+  extras?: ImportExtras;
+}
+
+/** The rest of a mock built from a contract, for the report. */
+export interface ImportExtras {
+  /** Responses that answer when asked for by status code (X-Mockix-Respuesta or ?mockix_respuesta=). */
+  selectable: number;
+  /** Where the contract was copied and connected (contracts/…), or null. */
+  contract: string | null;
+  /** Data buckets with one CRUD route each. */
+  crud: Array<{ bucket: string; path: string; items: number }>;
+  /** State machines deduced from a status field. */
+  scenarios: Array<{ id: string; field: string; states: string[]; transitions: number }>;
+  /** Chaos profiles prepared (off until applied). */
+  chaos: string[];
+  /** Why something was not deduced. */
+  notes: string[];
 }
 
 export interface ImportResult {
   mock: ImportedMock;
   report: ImportReport;
+  /** The source itself, when it can be the mock's contract (OpenAPI). */
+  contractSource?: { text: string; fileName: string };
 }
 
 export class ImportError extends Error {

@@ -85,8 +85,10 @@ describe("import and export", () => {
   it("parses import and export", () => {
     expect(parseCli(["import", "col.json", "ws", "--name", "tienda-api", "-p", "4000", "--prefix", "/v1"])).toEqual({
       ok: true,
-      command: { kind: "import", file: "col.json", dir: "ws", format: null, name: "tienda-api", port: 4000, prefix: "/v1" },
+      command: { kind: "import", file: "col.json", dir: "ws", format: null, name: "tienda-api", port: 4000, prefix: "/v1", contract: true, chaos: true },
     });
+    expect(parseCli(["import", "api.yaml", "--no-contract", "--no-chaos"])).toMatchObject({ ok: true, command: { kind: "import", contract: false, chaos: false } });
+    expect(parseCli(["serve", ".", "--no-contract"])).toMatchObject({ ok: false });
     expect(parseCli(["export", "openapi", "ws", "-m", "tienda", "-o", "api.yaml"])).toEqual({ ok: true, command: { kind: "export", dir: "ws", mock: "tienda", out: "api.yaml" } });
   });
 

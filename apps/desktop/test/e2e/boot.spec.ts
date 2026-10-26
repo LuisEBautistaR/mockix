@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { writeExampleWorkspace } from "@mockix/core";
+import { writeEmptyWorkspace, writeExampleWorkspace } from "@mockix/core";
 
 const root = resolve(import.meta.dirname, "../..");
 const shots = resolve(root, "test-results/screens");
@@ -137,12 +137,55 @@ test("opens a folder without mockix.workspace.yaml and refuses a mock's own fold
     expect(await readFile(join(dir, "mockix.workspace.yaml"), "utf8")).toContain("format: 1");
 
     await win.getByTestId("new-mock").click();
+    await win.getByTestId("new-mock-empty").click();
     await win.getByTestId("new-mock-name").fill("pruebas");
     await win.getByTestId("new-mock-port").fill("0");
     await win.getByTestId("new-mock-prefix").fill("/v3/run");
     await win.getByTestId("new-mock-create").click();
     await expect(win.getByTestId("mock-row-pruebas")).toBeVisible();
     expect(await readFile(join(dir, "mocks", "pruebas", "mock.yaml"), "utf8")).toContain("prefix: /v3/run");
+  } finally {
+    await app.close();
+  }
+});
+
+test("creates a mock from an OpenAPI contract with its contract, data, scenario and chaos", async () => {
+  const ws = await temp("mockix-e2e-contract-");
+  await writeEmptyWorkspace(ws);
+  const source = await temp("mockix-e2e-source-");
+  await writeExampleWorkspace(source);
+  const contract = join(source, "contracts", "tienda.openapi.yaml");
+  const { app, win } = await launch({ workspace: ws });
+  try {
+    await app.evaluate(async ({ dialog }, f) => {
+      dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [f] })) as typeof dialog.showOpenDialog;
+    }, contract);
+    await win.getByTestId("start-from-contract").click();
+    await win.getByTestId("new-mock-pick").click();
+    await expect(win.getByTestId("new-mock-picked")).toContainText("tienda.openapi.yaml");
+    await expect(win.getByTestId("new-mock-name")).toHaveValue("tienda-demo");
+    await expect(win.getByTestId("new-mock-prefix")).toHaveValue("/v1");
+    await win.getByTestId("new-mock-port").fill("0");
+    await win.getByTestId("new-mock-create").click();
+
+    const extras = win.getByTestId("import-extras");
+    await expect(extras).toContainText("contracts/tienda-demo.openapi.yaml");
+    await expect(extras).toContainText("data/productos.json");
+    await expect(extras).toContainText("Escenario deducido pedidos");
+    await expect(extras).toContainText("tienda-demo-inestable");
+    await win.getByTestId("dialog-import").getByRole("button", { name: "Listo" }).click();
+
+    await expect(win.getByTestId("mock-row-tienda-demo")).toBeVisible();
+    await expect(win.getByTestId("mock-state")).toHaveText("Detenido", { timeout: 20_000 });
+    await win.getByTestId("mock-toggle").click();
+    await expect(win.getByTestId("mock-state")).toHaveText("En marcha", { timeout: 20_000 });
+    const url = (await win.getByTestId("mock-url").textContent())!;
+    const list = (await (await fetch(`${url}/productos`)).json()) as { data: unknown[] };
+    expect(list.data).toHaveLength(3);
+    expect((await fetch(`${url}/pedidos/ped_9?mockix_respuesta=410`)).status).toBe(410);
+    expect((await fetch(`${url}/pedidos/ped_9`, { headers: { "X-Mockix-Respuesta": "410" } })).status).toBe(410);
+    expect(await readdir(join(ws, "chaos"))).toEqual(["tienda-demo.yaml"]);
+    expect(await readFile(join(ws, "mocks", "tienda-demo", "mock.yaml"), "utf8")).toContain("contracts/tienda-demo.openapi.yaml");
   } finally {
     await app.close();
   }
@@ -241,6 +284,7 @@ test("creates a mock, a route and a response in the editor, tests it and reads t
   try {
     // New mock through the dialog (port 0: any free one).
     await win.getByTestId("new-mock").click();
+    await win.getByTestId("new-mock-empty").click();
     await win.getByTestId("new-mock-name").fill("pagos");
     await win.getByTestId("new-mock-port").fill("0");
     await win.getByTestId("new-mock-prefix").fill("/api");

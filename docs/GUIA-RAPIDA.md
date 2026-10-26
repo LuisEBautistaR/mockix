@@ -66,17 +66,44 @@ En Mockix, el **log** muestra cada petición que hiciste, qué respondió y cuá
 
 Ahora dice `"activo": false`. Mockix aplica el cambio al momento, sin reiniciar nada.
 
-## Paso 6. Crea el mock de tu propia API
+## Paso 6. Crea el mock desde tu contrato
 
-Si tienes la especificación de tu API en un archivo OpenAPI o Swagger (`.yaml` o `.json`):
+Si tienes la especificación de tu API en un archivo OpenAPI o Swagger (`.yaml` o `.json`), Mockix arma el mock completo por ti:
 
-1. Pulsa el icono **Importar** en la barra de la izquierda (la flecha hacia abajo) y elige tu archivo.
-2. Mockix crea un mock con una ruta por cada operación, con los ejemplos de tu archivo o con datos inventados.
-3. Selecciónalo y pulsa **Iniciar**.
+1. Pulsa el icono **Nuevo mock** (el servidor) en la barra de la izquierda. En un workspace sin mocks también tienes el botón **Crear mock desde un contrato**.
+2. Deja elegida la opción **Desde un contrato OpenAPI** y pulsa **Elegir contrato…**.
+3. Mockix lee el archivo y propone el nombre, el puerto y el prefijo (de `servers`). Cámbialos si quieres.
+4. Pulsa **Crear mock**. Un informe te dice qué creó.
+5. Selecciónalo y pulsa **Iniciar**.
 
-También importa colecciones de Postman y de Sendix, archivos HAR y entornos de Mockoon.
+**Qué crea a partir del contrato:**
 
-¿Prefieres empezar de cero? Usa el icono **Nuevo mock** (el servidor) y luego **+** para añadir rutas.
+| Qué | Cómo queda |
+|---|---|
+| **Rutas y respuestas** | Una ruta por operación y una respuesta por cada código documentado, con los ejemplos del contrato o con datos inventados según el esquema. |
+| **Elegir la respuesta** | Cualquier respuesta documentada se pide por su código. Ver abajo. |
+| **El contrato** | Copiado a `contracts/` y conectado en modo «avisar»: cada petición se revisa contra él. |
+| **Datos y CRUD** | Si el contrato tiene un recurso que se lista, se lee por id y se crea, cambia o borra (`/clientes` y `/clientes/{id}`), Mockix crea un bucket con registros de ejemplo y una ruta CRUD: lo que creas con `POST` aparece después en `GET`. |
+| **Escenarios** | Si un recurso tiene un campo de estado con valores fijos (`estado: [creado, pagado, enviado]`) y acciones como `POST /pedidos/{id}/pago`, Mockix deduce la máquina de estados y la ruta `GET` responde el estado actual. Revísalo en **Escenarios**. |
+| **Perfiles de caos** | Tres perfiles con los errores de servidor del contrato (lenta, inestable y caída), **apagados**. Los activas en **Perfiles de caos** cuando quieras. |
+
+**Pide cualquier respuesta del contrato.** Si el contrato documenta un 404 o un 500, el mock te lo da cuando lo pides. Así pruebas cómo reacciona tu app a cada error sin tocar nada:
+
+- En el navegador, añade `?mockix_respuesta=404` a la dirección.
+- Desde tu app o PowerShell, manda la cabecera `X-Mockix-Respuesta`:
+
+  ```powershell
+  Invoke-RestMethod -Method Post http://127.0.0.1:3001/v1/pedidos -Headers @{ "X-Mockix-Respuesta" = "500" }
+  ```
+
+Sin eso, el mock responde la respuesta normal (la primera correcta del contrato).
+
+**Si tu contrato es diferente:**
+
+- **Solo acciones** (todo es `POST` o `PUT`, sin `GET /recurso/{id}`): no hay datos ni estados que deducir, así que quedan las rutas con todas sus respuestas, que puedes elegir como arriba. El informe lo dice.
+- **Swagger 2.0:** las rutas se crean igual, pero el contrato no se conecta, porque la revisión de peticiones necesita OpenAPI 3. El informe lo avisa.
+
+¿Tienes una colección de Postman o Sendix, un HAR o un entorno de Mockoon? Usa el icono **Importar** (la flecha hacia abajo). ¿Prefieres empezar de cero? En **Nuevo mock** elige **Vacío** y luego usa **+** para añadir rutas.
 
 ## Paso 7. Úsalo en tu app
 
