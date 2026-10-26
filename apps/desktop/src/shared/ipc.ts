@@ -9,6 +9,7 @@ export const IpcChannels = {
   mocksStop: "mockix:mocks-stop",
   mocksSend: "mockix:mocks-send",
   mocksCreate: "mockix:mocks-create",
+  mocksDelete: "mockix:mocks-delete",
   routesRead: "mockix:routes-read",
   routesWrite: "mockix:routes-write",
   routesDelete: "mockix:routes-delete",

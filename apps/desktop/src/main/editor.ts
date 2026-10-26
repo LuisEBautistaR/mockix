@@ -2,7 +2,7 @@ import { shell } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, dirname } from "node:path";
 import { stringify } from "yaml";
-import { EditError, ImportError, createMock, deleteRoute, exportOpenApi, importSource, previewTemplate, readRoute, writeImported, writeRoute, type RouteDocument, type RouteDraft } from "@mockix/core";
+import { EditError, ImportError, createMock, deleteMock, deleteRoute, exportOpenApi, importSource, previewTemplate, readRoute, writeImported, writeRoute, type RouteDocument, type RouteDraft } from "@mockix/core";
 import type { ImportSummary } from "@shared/ipc";
 import { ErrorCodes, type Outcome } from "@shared/rpc";
 import type { WorkspaceService } from "./workspace";
@@ -64,6 +64,11 @@ export class WorkspaceEditor {
   remove(mock: string, routeId: string): Promise<Outcome<{ file: string }>> {
     // To the OS trash, not a permanent delete: an accidental click can be undone.
     return this.#run(async (dir) => ({ file: await deleteRoute(dir, mock, routeId, (abs) => shell.trashItem(abs)) }));
+  }
+
+  /** The whole mock to the OS trash, like a route: it can be restored from there. */
+  removeMock(name: string): Promise<Outcome<{ removed: string[] }>> {
+    return this.#run(async (dir) => ({ removed: await deleteMock(dir, name, (abs) => shell.trashItem(abs)) }));
   }
 
   createMock(name: string, port: number, prefix: string): Promise<Outcome<null>> {

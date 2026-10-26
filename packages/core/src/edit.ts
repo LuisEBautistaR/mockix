@@ -310,6 +310,47 @@ export async function deleteRoute(workspaceDir: string, mock: string, routeId: s
   return toPosix(relative(root, found.abs));
 }
 
+/**
+ * Removes a whole mock: its folder, its entry in mockix.workspace.yaml (when that
+ * file lists mocks) and the Sendix environment it wrote (only one it marked as its
+ * own). `trash` moves files to the OS trash when the caller has one (desktop).
+ * Returns the paths removed, relative to the workspace.
+ */
+export async function deleteMock(workspaceDir: string, name: string, trash?: (abs: string) => Promise<void>): Promise<string[]> {
+  const ws = resolve(workspaceDir);
+  const root = mockDir(workspaceDir, name);
+  if (!(await exists(join(root, MOCK_FILE)))) throw new EditError("NOT_FOUND", `No mock named "${name}"`);
+  const remove = (abs: string) => (trash ? trash(abs) : rm(abs, { recursive: true, force: true }));
+  const removed: string[] = [];
+
+  await remove(root);
+  removed.push(toPosix(relative(ws, root)));
+
+  const wsFile = join(ws, WORKSPACE_FILE);
+  if (await exists(wsFile)) {
+    const doc = parseDocument(await readFile(wsFile, "utf8"));
+    const parsed = workspaceFile.safeParse(doc.toJS());
+    if (parsed.success && parsed.data.mocks?.includes(name)) {
+      doc.set("mocks", doc.createNode(parsed.data.mocks.filter((m) => m !== name), { flow: true }));
+      await writeFile(wsFile, doc.toString({ lineWidth: 0 }));
+    }
+  }
+
+  const env = join(ws, "environments", `Mock ${name}.postman_environment.json`);
+  if (await exists(env)) {
+    try {
+      const marker = (JSON.parse(await readFile(env, "utf8")) as { "x-mockix"?: { mock?: unknown } })["x-mockix"];
+      if (marker?.mock === name) {
+        await remove(env);
+        removed.push(toPosix(relative(ws, env)));
+      }
+    } catch {
+      // Not valid JSON: not one Mockix wrote, so it stays.
+    }
+  }
+  return removed;
+}
+
 /** Extra mock.yaml settings a caller (an importer) may set when creating a mock. */
 export interface MockExtras {
   latency?: number;

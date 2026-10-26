@@ -77,6 +77,43 @@ function NewMockDialog() {
   );
 }
 
+function DeleteMockDialog({ mockId }: { mockId: string }) {
+  const setDialog = useStore((s) => s.setDialog);
+  const deleteMock = useStore((s) => s.deleteMock);
+  const mock = useStore((s) => s.mocks.find((m) => m.id === mockId));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const running = mock?.state === "running" || mock?.state === "starting" || mock?.state === "restarting";
+
+  const confirm = async () => {
+    setBusy(true);
+    const err = await deleteMock(mockId);
+    setBusy(false);
+    if (err) setError(err);
+  };
+
+  return (
+    <Modal title="Mover el mock a la papelera" onClose={() => setDialog(null)} testId="dialog-delete-mock">
+      <div className="modal-body">
+        <p>
+          La carpeta <span className="mono">mocks/{mockId}</span> irá a la papelera de Windows, con sus {mock?.routes.length ?? 0} rutas, sus datos y sus archivos. Desde la
+          papelera la puedes restaurar.
+        </p>
+        {running && <p className="hint">El mock está en marcha: se detiene primero.</p>}
+        {error && <p className="why-box">{error}</p>}
+        <div className="modal-foot">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDialog(null)}>
+            Cancelar
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={confirm} disabled={busy} data-testid="delete-mock-confirm">
+            Mover a la papelera
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function NewRouteDialog({ mockId }: { mockId: string }) {
   const setDialog = useStore((s) => s.setDialog);
   const createRoute = useStore((s) => s.createRoute);
@@ -279,6 +316,7 @@ export function Dialogs() {
   if (!dialog) return null;
   if (dialog.kind === "new-mock") return <NewMockDialog />;
   if (dialog.kind === "new-route") return <NewRouteDialog mockId={dialog.mockId} />;
+  if (dialog.kind === "delete-mock") return <DeleteMockDialog mockId={dialog.mockId} />;
   if (dialog.kind === "import-result") return <ImportResult summary={dialog.summary} />;
   return <QuickOpen />;
 }

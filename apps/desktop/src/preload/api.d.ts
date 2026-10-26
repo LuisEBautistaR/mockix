@@ -51,6 +51,8 @@ export interface MockixApi {
     send(id: string, request: TestRequest): Promise<Outcome<ProbeResult>>;
     /** Creates mocks/<name>/ with its mock.yaml. */
     create(name: string, port: number, prefix: string): Promise<Outcome<null>>;
+    /** Stops the mock and moves mocks/<id>/ (and the Sendix environment it wrote) to the OS trash. */
+    remove(id: string): Promise<Outcome<{ removed: string[] }>>;
     /** Asks where to save and writes the mock as OpenAPI 3.1; null when cancelled. */
     exportOpenApi(id: string): Promise<Outcome<{ file: string } | null>>;
     /** Test builds only (MOCKIX_TEST=1); answers UNKNOWN_METHOD otherwise. */

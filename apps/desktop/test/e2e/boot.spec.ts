@@ -148,6 +148,30 @@ test("opens a folder without mockix.workspace.yaml and refuses a mock's own fold
   }
 });
 
+test("moves a running mock to the trash after confirming, and stops it first", async () => {
+  const ws = await exampleWorkspace();
+  const { win, app } = await launch({ workspace: ws });
+  try {
+    const url = await startTienda(win);
+    await win.getByTestId("mock-delete").click();
+    await expect(win.getByTestId("dialog-delete-mock")).toContainText("mocks/tienda");
+    await expect(win.getByTestId("dialog-delete-mock")).toContainText("se detiene primero");
+    // Cancelling leaves everything as it was.
+    await win.getByTestId("dialog-delete-mock").getByRole("button", { name: "Cancelar" }).click();
+    await expect(win.getByTestId("mock-state")).toHaveText("En marcha");
+
+    await win.getByTestId("mock-delete").click();
+    await win.getByTestId("delete-mock-confirm").click();
+    await expect(win.getByTestId("notice")).toContainText("El mock «tienda» está en la papelera.");
+    await expect(win.getByTestId("mock-row-tienda")).toHaveCount(0);
+    expect(await readdir(join(ws, "mocks"))).toEqual([]);
+    expect(await readFile(join(ws, "mockix.workspace.yaml"), "utf8")).not.toContain("tienda");
+    await expect(fetch(`${url}/salud`)).rejects.toThrow();
+  } finally {
+    await app.close();
+  }
+});
+
 test("serves a workspace mock in its own process and reloads edits live", async () => {
   const ws = await exampleWorkspace();
   const { app, win } = await launch({ workspace: ws });

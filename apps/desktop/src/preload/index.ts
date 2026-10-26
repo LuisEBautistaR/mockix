@@ -26,6 +26,7 @@ const api: MockixApi = {
     stop: (id) => ipcRenderer.invoke(IpcChannels.mocksStop, id),
     send: (id, request) => ipcRenderer.invoke(IpcChannels.mocksSend, id, request),
     create: (name, port, prefix) => ipcRenderer.invoke(IpcChannels.mocksCreate, name, port, prefix),
+    remove: (id) => ipcRenderer.invoke(IpcChannels.mocksDelete, id),
     exportOpenApi: (id) => ipcRenderer.invoke(IpcChannels.mocksExport, id),
     crashHost: (id) => ipcRenderer.invoke(IpcChannels.mocksCrashHost, id),
     onList: (listener) => subscribe<MockStatus[]>(IpcChannels.mocksChanged, listener),

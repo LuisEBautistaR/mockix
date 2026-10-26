@@ -130,6 +130,15 @@ export function registerIpcRouter({ mocks, workspace, editor, recorder, insight,
       return test.success ? mocks.send(id, test.data) : invalid("Invalid test request");
     }),
   );
+  ipcMain.handle(
+    IpcChannels.mocksDelete,
+    withMock(async (id) => {
+      // Stopped first, so its port is free and its process gone before the folder moves.
+      const stopped = await mocks.stop(id);
+      if (!stopped.ok && stopped.error.code !== ErrorCodes.notFound) return stopped;
+      return editor.removeMock(id);
+    }),
+  );
   ipcMain.handle(IpcChannels.mocksCreate, async (event, rawName, rawPort, rawPrefix): Promise<Outcome<null>> => {
     if (!isTrustedSender(event.senderFrame)) return forbidden;
     const name = mockId.safeParse(rawName);

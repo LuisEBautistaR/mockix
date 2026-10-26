@@ -68,6 +68,6 @@ export { WorkspaceExistsError, writeEmptyWorkspace, writeExampleWorkspace } from
 export { BucketStore } from "./buckets.js";
 export { TemplateEngine, TemplateError, checkTemplate, fixTripleClose, getPath, previewTemplate, type PreviewData, type TemplateDeps } from "./template.js";
 export { seededRandom } from "./random.js";
-export { EditError, createMock, deleteRoute, readRoute, setRouteOrder, writeRoute, type BodyDraft, type MockExtras, type ResponseDraft, type RouteDocument, type RouteDraft } from "./edit.js";
+export { EditError, createMock, deleteMock, deleteRoute, readRoute, setRouteOrder, writeRoute, type BodyDraft, type MockExtras, type ResponseDraft, type RouteDocument, type RouteDraft } from "./edit.js";
 export * from "./import/index.js";
 export * from "./record/index.js";

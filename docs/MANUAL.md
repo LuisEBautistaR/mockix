@@ -98,6 +98,8 @@ La primera vez verás dos botones:
 - **Guardar** (`Ctrl S`): escribe los archivos. Si algo no es válido, te dice qué campo y no toca el disco. El mock en marcha aplica el cambio al momento, sin reiniciar.
 - **Mover a la papelera:** las rutas no se borran para siempre; van a la papelera de Windows.
 
+**Borrar un mock:** selecciónalo y pulsa **Mover el mock a la papelera**, debajo de sus datos. Después de confirmar, Mockix lo detiene si está en marcha, manda su carpeta a la papelera de Windows (de donde se puede restaurar), lo quita de `mockix.workspace.yaml` y borra el entorno de Sendix que había escrito para él.
+
 También puedes editar los `.yaml` con cualquier editor de texto: Mockix detecta el cambio y recarga.
 
 ## 5. Respuestas que cambian
@@ -186,6 +188,22 @@ Antes de escribir el mock, Mockix quita credenciales y cambia tokens, correos y 
 ## 9. Contrato OpenAPI
 
 Asocia un mock a un OpenAPI de `contracts/` y Mockix revisa cada petición: ruta, parámetros, tipos y cuerpo. También revisa las respuestas del propio mock, para detectar un mock desactualizado.
+
+**Cómo debe ser el contrato:**
+
+- **Formato:** un archivo OpenAPI 3.0 o 3.1 (YAML o JSON) en `contracts/`. Si ya tienes la documentación de tu API en Swagger u OpenAPI, sirve tal cual.
+- **Esquemas:** cada operación con sus `parameters`, su `requestBody` y sus `responses`, con tipos y campos obligatorios. Solo se valida lo que el contrato describe.
+- **Prefijo:** el prefijo del mock va en `servers` (`url: http://localhost:3000/v1`) y las rutas de `paths` van sin él (`/productos`).
+- **Conexión:** en el `mock.yaml`:
+
+  ```yaml
+  contract:
+    file: contracts/tienda.openapi.yaml
+    mode: warn          # off, warn o strict
+    responses: true     # valida también las respuestas del mock
+  ```
+
+La [guía rápida](GUIA-RAPIDA.md#contratos-que-el-mock-no-se-invente-nada) lo prueba paso a paso con el contrato del ejemplo.
 
 - **Modos:** apagado, **avisar** (registra el fallo y responde igual) o **estricto** (responde `400` explicando el error).
 - **Vista Contratos:** las reglas que se rompen, qué cliente las rompe y qué operaciones del contrato tienen mock.

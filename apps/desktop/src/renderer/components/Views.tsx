@@ -208,6 +208,11 @@ export function MockOverview({ mock }: { mock: MockStatus }) {
                 {mock.error ? `${mock.error.code} · ${mock.error.message}` : "—"}
               </dd>
             </dl>
+            <div className="danger-row">
+              <button type="button" className="link-btn" onClick={() => setDialog({ kind: "delete-mock", mockId: mock.id })} data-testid="mock-delete">
+                <Icon name="trash" size={14} /> Mover el mock a la papelera
+              </button>
+            </div>
           </div>
         </div>
         <LogPane mock={mock} />

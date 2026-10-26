@@ -42,7 +42,7 @@ export interface Draft {
 }
 
 export type View = "mocks" | "settings" | "recordings" | "scenarios" | "chaos" | "contracts" | "agents";
-export type Dialog = { kind: "new-mock" } | { kind: "new-route"; mockId: string } | { kind: "quick-open" } | { kind: "import-result"; summary: ImportSummary } | null;
+export type Dialog = { kind: "new-mock" } | { kind: "new-route"; mockId: string } | { kind: "delete-mock"; mockId: string } | { kind: "quick-open" } | { kind: "import-result"; summary: ImportSummary } | null;
 
 const MAX_LOG = 1000;
 const tabKey = (t: Tab) => `${t.mockId}/${t.routeId}`;
@@ -83,6 +83,8 @@ interface State {
   save(key: string): Promise<boolean>;
   revert(key: string): void;
   createMock(name: string, port: number, prefix: string): Promise<string | null>;
+  /** Moves the mock folder to the OS trash; returns the error message, or null. */
+  deleteMock(mockId: string): Promise<string | null>;
   importFile(): Promise<void>;
   exportOpenApi(mockId: string): Promise<void>;
   createRoute(mockId: string, draft: RouteDraft, folder: string): Promise<string | null>;
@@ -238,6 +240,26 @@ export const useStore = create<State>((set, get) => ({
     const outcome = await window.mockix.mocks.create(name, port, prefix);
     if (!outcome.ok) return outcome.error.message;
     set({ selectedMock: name });
+    return null;
+  },
+
+  async deleteMock(mockId) {
+    const outcome = await window.mockix.mocks.remove(mockId);
+    if (!outcome.ok) return outcome.error.message;
+    set((s) => {
+      const tabs = s.tabs.filter((t) => t.mockId !== mockId);
+      const drafts = Object.fromEntries(Object.entries(s.drafts).filter(([key]) => !key.startsWith(`${mockId}/`)));
+      const activeTab = s.activeTab?.startsWith(`${mockId}/`) ? (tabs[0] ? tabKey(tabs[0]) : null) : s.activeTab;
+      return {
+        tabs,
+        drafts,
+        activeTab,
+        dialog: null,
+        selectedMock: s.selectedMock === mockId ? null : s.selectedMock,
+        live: s.live?.mockId === mockId ? null : s.live,
+        notice: `El mock «${mockId}» está en la papelera.`,
+      };
+    });
     return null;
   },
 

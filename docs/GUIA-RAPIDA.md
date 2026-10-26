@@ -82,6 +82,133 @@ También importa colecciones de Postman y de Sendix, archivos HAR y entornos de 
 
 En tu app, cambia la dirección de la API real por la del mock (por ejemplo `http://127.0.0.1:3000/v1`). Cuando la API real esté lista, vuelves a poner la de siempre.
 
+## Más funciones, paso a paso
+
+Con lo anterior ya tienes un mock funcionando. Estas cuatro funciones lo acercan a una API de verdad. Todas se prueban con el ejemplo **tienda** encendido, y se abren desde los iconos del **rail**, la columna de iconos a la izquierda de la ventana.
+
+### Grabaciones: copia una API que ya existe
+
+**Para qué sirve:** si la API real ya existe, Mockix la puede «copiar». Se pone en medio, deja pasar tus peticiones, guarda lo que responde la API y lo convierte en un mock. Así no escribes las respuestas a mano.
+
+**Pruébalo grabando la propia tienda**, como si fuera la API real:
+
+1. Abre **Grabaciones** en el rail.
+2. Arriba verás `localhost:4100 → https://`. Ese `4100` es el puerto del intermediario (el *proxy*). A la derecha de la flecha escribe la API que quieres copiar: `http://127.0.0.1:3000/v1`.
+3. Pulsa **Grabar**.
+4. En el navegador abre `http://localhost:4100/productos/prd_7Qm2` y luego `http://localhost:4100/productos/prd_8Lx4`. Fíjate que usas el puerto **4100**, el del proxy, no el 3000.
+5. Pulsa **Detener**. En **Tráfico** ves las dos peticiones. En **Rutas detectadas**, Mockix ya entendió que son la misma ruta, `GET /productos/:id`.
+6. En **Destino** deja «mock nuevo», ponle un nombre y pulsa **Convertir en mocks**.
+
+Con una API real haces lo mismo: en el paso 2 pones su dirección (por ejemplo `https://api.miempresa.com`), y en tu app la cambias por `http://localhost:4100` mientras grabas.
+
+> Las contraseñas, tokens y cookies no pasan al mock: Mockix los quita o los cambia por datos inventados. La grabación original queda en la carpeta `.mockix`, que no se sube a git.
+
+### Escenarios: respuestas que cambian con el tiempo
+
+**Para qué sirve:** una API real recuerda cosas. Un pedido primero está «creado», cuando lo pagas pasa a «pagado» y luego a «enviado». Un escenario hace que tu mock se comporte así.
+
+**Pruébalo con el pedido del ejemplo:**
+
+1. Abre en el navegador `http://127.0.0.1:3000/v1/pedidos/ped_1`. Responde `{ "id": "ped_1", "estado": "creado" }`.
+2. Paga el pedido. Esto no se puede hacer desde la barra del navegador, porque es un `POST`. Pégalo en PowerShell:
+
+   ```powershell
+   Invoke-RestMethod -Method Post http://127.0.0.1:3000/v1/pedidos/ped_1/pago
+   ```
+
+3. Vuelve a abrir `.../pedidos/ped_1`: ahora dice `"estado": "pagado"`.
+4. Espera 10 segundos y ábrelo otra vez: `"estado": "enviado"`, con su número de guía.
+5. Abre **Escenarios** en el rail. Verás el diagrama del pedido con el estado actual resaltado, la instancia `ped_1` y qué la hizo avanzar. Desde ahí puedes **Forzar estado** o **Reiniciar instancias** para volver a empezar.
+
+Cada id lleva su propio estado: `ped_2` empieza otra vez en «creado».
+
+**Cómo es por dentro:** el escenario es un archivo en `mocks/tienda/scenarios/pedido.yaml`:
+
+```yaml
+key: params.id                 # un estado distinto por cada id de pedido
+initial: creado                # el estado con el que empieza
+states: [creado, pagado, enviado, entregado, cancelado]
+transitions:
+  - { from: creado, to: pagado, on: { method: POST, path: /pedidos/:id/pago } }   # con una petición
+  - { from: pagado, to: enviado, after: 10s }                                     # con el tiempo
+```
+
+La ruta `GET /pedidos/:id` tiene una respuesta para cada estado.
+
+### Perfiles de caos: una red mala a propósito
+
+**Para qué sirve:** en la vida real la red a veces va lenta o la API falla. Con un perfil de caos compruebas que tu app lo aguanta: que muestra un aviso en vez de quedarse en blanco, que reintenta, etc.
+
+**Pruébalo:**
+
+1. Abre **Perfiles de caos** en el rail. A la izquierda están los perfiles del ejemplo: `red-inestable`, `rampa`, `pico`, `red-3g` y `se-cae-a-los-30s`.
+2. Elige **red-3g**, que simula un celular lento. La gráfica muestra la latencia (cuánto tarda en responder) y los errores a lo largo del tiempo.
+3. A la derecha, en **Dónde se aplica**, busca el mock **tienda** y elige `red-3g` en su lista. Para quitarlo, elige «sin caos».
+4. Abre de nuevo `http://127.0.0.1:3000/v1/productos`: ahora tarda un tercio de segundo o más. En la pestaña **Efectos aplicados** ves qué le hizo el caos a cada petición, por ejemplo `+391 ms`.
+
+Prueba **red-inestable** para ver errores 500 y 503 a los 30 segundos. Para cambiar una curva, arrastra sus puntos sobre la gráfica y pulsa **Aplicar cambios**. **Pausar caos** lo detiene sin quitarlo.
+
+### Contratos: que el mock no se invente nada
+
+**Para qué sirve:** un contrato es la especificación oficial de tu API: qué rutas existen, qué datos recibe cada una y qué devuelve. Si el mock tiene contrato, Mockix revisa cada petición contra él y te avisa cuando tu app manda algo que la API real rechazaría. También revisa las respuestas del propio mock, para que no se quede desactualizado.
+
+**Cómo debe ser un contrato:**
+
+- **El formato:** un archivo **OpenAPI 3.0 o 3.1**, en YAML o JSON, el formato estándar para describir APIs. Si tu equipo ya tiene la documentación de la API en Swagger u OpenAPI, ese archivo sirve tal cual.
+- **Dónde va:** en la carpeta `contracts/` del workspace, por ejemplo `contracts/tienda.openapi.yaml`.
+- **Qué tiene:** cada ruta con sus parámetros, el cuerpo que espera (`requestBody`) y lo que responde (`responses`), cada uno con su esquema: qué campos hay, de qué tipo y cuáles son obligatorios. Mockix solo puede revisar lo que el contrato describe.
+- **El prefijo:** va en `servers` (`url: http://localhost:3000/v1`) y las rutas van sin él (`/productos`, no `/v1/productos`).
+
+Un trozo del contrato del ejemplo:
+
+```yaml
+openapi: 3.1.0
+info: { title: Tienda demo, version: 1.0.0 }
+servers:
+  - url: http://localhost:3000/v1
+paths:
+  /productos:
+    get:
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200":
+          description: Productos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, total]
+                properties:
+                  data: { type: array }
+                  total: { type: integer }
+```
+
+**Cómo se conecta al mock:** en `mocks/tienda/mock.yaml`:
+
+```yaml
+contract:
+  file: contracts/tienda.openapi.yaml
+  mode: warn        # off: apagado · warn: avisa y responde igual · strict: responde 400 si no cumple
+```
+
+**Pruébalo:** el ejemplo ya tiene su contrato en modo «avisar».
+
+1. Manda un producto con el precio mal escrito (como texto en lugar de número). Pégalo en PowerShell:
+
+   ```powershell
+   Invoke-RestMethod -Method Post http://127.0.0.1:3000/v1/productos -ContentType application/json -Body '{"nombre":"Taza","precio":"caro"}'
+   ```
+
+   PowerShell lo muestra en rojo porque el mock respondió un error (422, «Datos no válidos»): es lo esperado.
+
+2. Abre **Contratos** en el rail. Verás la regla que se rompió, explicada: `body.precio debe ser number (recibido "caro", un string)`. También ves qué cliente la rompió y qué operaciones del contrato todavía no tienen mock.
+3. Cambia el modo a **Estricto** y repite el paso 1: ahora responde el propio contrato, con un error 400 «La petición no cumple el contrato» y la explicación del campo que falló.
+
+## Borrar un mock
+
+Selecciona el mock y, debajo de sus datos, pulsa **Mover el mock a la papelera**. Mockix lo detiene si está en marcha y manda su carpeta a la papelera de Windows, de donde lo puedes recuperar.
+
 ## Palabras que vas a ver
 
 | Palabra | Qué significa |
@@ -103,5 +230,5 @@ En tu app, cambia la dirección de la API real por la del mock (por ejemplo `htt
 
 ## ¿Y después?
 
-- **El [manual](MANUAL.md)** explica todo lo demás: respuestas que cambian según la petición, datos falsos, pedidos que avanzan de estado, red lenta a propósito, WebSocket y gRPC, grabar una API real y dejar que un agente de IA cree rutas por ti.
-- **Explora el ejemplo:** tiene de todo. En el rail de la izquierda prueba **Escenarios** y **Perfiles de caos**.
+- **El [manual](MANUAL.md)** explica todo lo demás: respuestas que cambian según la petición, datos falsos y rutas CRUD, WebSocket, Socket.IO y gRPC, la terminal y Docker, y dejar que un agente de IA cree rutas por ti.
+- **Explora el ejemplo:** tiene de todo. Cada ruta de `tienda` es un archivo que puedes abrir para ver cómo está hecha.

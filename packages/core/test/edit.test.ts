@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { EditError, WorkspaceExistsError, allProblems, createMock, deleteRoute, loadWorkspace, readRoute, startMock, writeEmptyWorkspace, writeExampleWorkspace, writeRoute, type RouteDraft } from "@mockix/core";
+import { EditError, WorkspaceExistsError, allProblems, createMock, deleteMock, deleteRoute, loadWorkspace, readRoute, startMock, writeEmptyWorkspace, writeExampleWorkspace, writeRoute, type RouteDraft } from "@mockix/core";
 
 const dirs: string[] = [];
 async function example(): Promise<string> {
@@ -111,6 +111,33 @@ describe("createMock and deleteRoute", () => {
     expect(trashed).toHaveLength(1);
     expect(await deleteRoute(ws, "tienda", "salud")).toBe("routes/salud.yaml");
     await expect(readRoute(ws, "tienda", "salud")).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("deletes a whole mock, its workspace entry and only its own Sendix environment", async () => {
+    const ws = await example();
+    await createMock(ws, "pagos", 3001);
+    await mkdir(join(ws, "environments"), { recursive: true });
+    const own = join(ws, "environments", "Mock pagos.postman_environment.json");
+    await writeFile(own, JSON.stringify({ name: "Mock pagos", values: [], "x-mockix": { mock: "pagos" } }));
+    const foreign = join(ws, "environments", "Mock tienda.postman_environment.json");
+    await writeFile(foreign, JSON.stringify({ name: "Mock tienda", values: [] }));
+
+    const trashed: string[] = [];
+    const trash = async (p: string) => {
+      trashed.push(p);
+      await rm(p, { recursive: true, force: true });
+    };
+    expect(await deleteMock(ws, "pagos", trash)).toEqual(["mocks/pagos", "environments/Mock pagos.postman_environment.json"]);
+    expect(trashed).toEqual([join(ws, "mocks", "pagos"), own]);
+    expect(await readFile(join(ws, "mockix.workspace.yaml"), "utf8")).toContain("mocks: [ tienda ]");
+
+    // Without a trash it removes for good, and keeps an environment someone else wrote.
+    expect(await deleteMock(ws, "tienda")).toEqual(["mocks/tienda"]);
+    expect(await readdir(join(ws, "mocks"))).toEqual([]);
+    expect(await readFile(foreign, "utf8")).toContain("Mock tienda");
+    expect(allProblems(await loadWorkspace(ws))).toEqual([]);
+    await expect(deleteMock(ws, "tienda")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(deleteMock(ws, "../fuera")).rejects.toMatchObject({ code: "INVALID" });
   });
 
   it("refuses a folder that is not a workspace without leaving a half-made mock", async () => {
