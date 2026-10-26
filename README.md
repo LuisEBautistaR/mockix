@@ -6,7 +6,7 @@ Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de e
 
 **¿Primera vez?** Empieza por la [guía rápida](docs/GUIA-RAPIDA.md) (también en [protohub.digital/mockix/guia](https://protohub.digital/mockix/guia/)). Cada función se explica en el [manual de uso](docs/MANUAL.md).
 
-Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
+Estado: **0.1.2 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
@@ -26,11 +26,11 @@ Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [G
 |---|---|
 | **Windows** | `Mockix-<versión>-setup.exe` de GitHub Releases. Instala por usuario (sin administrador), registra `mockix://` y se actualiza solo. |
 | **CLI** | `npm i -g @fulerbdev/mockix`, con Node 22 o superior. Instala el comando `mockix`. El nombre lleva prefijo porque npm rechaza `mockix` por parecido a otro paquete. |
-| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.1` |
+| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.2` |
 
 **Docker:**
-- **Etiquetas:** una por versión (`v0.1.1`) y `latest`, que apunta a la más reciente.
-- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.1 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
+- **Etiquetas:** una por versión (`v0.1.2`) y `latest`, que apunta a la más reciente.
+- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.2 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
 - **Imagen:** parte de `distroless/nodejs24` (sin shell ni gestor de paquetes) y corre como usuario sin privilegios.
 - **Escritura:** con `--read-only` solo escribe en el volumen montado (`.mockix/` del workspace).
 - **Mocks:** sirve los de `/mocks` escuchando en `0.0.0.0`; el aviso que lo dice al arrancar es normal dentro del contenedor, que solo es accesible por los puertos que publiques con `-p`. Publica el puerto de cada mock (`-p 3001:3001`).

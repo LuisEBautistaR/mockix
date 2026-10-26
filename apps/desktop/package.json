@@ -1,7 +1,7 @@
 {
   "name": "@mockix/desktop",
   "productName": "Mockix",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Simulador de APIs de escritorio, local primero.",
   "author": "Luis E. Bautista",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "@grpc/grpc-js": "1.14.6",
     "@grpc/proto-loader": "0.8.1",
     "@lezer/highlight": "1.2.5",
-    "@mockix/core": "0.1.1",
+    "@mockix/core": "0.1.2",
     "@playwright/test": "1.64.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
