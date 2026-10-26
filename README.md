@@ -4,7 +4,7 @@
 
 Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de escritorio, CLI y Docker. Es la app hermana de Sendix. Sistema visual en [docs/DESIGN.md](docs/DESIGN.md).
 
-Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), e imagen Docker en `ghcr.io/luisebautistar/mockix`. La CLI todavía no está en npm (ver [Instalación](#instalación)).
+Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/),, la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
@@ -23,7 +23,7 @@ Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [G
 | Dónde | Cómo |
 |---|---|
 | **Windows** | `Mockix-<versión>-setup.exe` de GitHub Releases. Instala por usuario (sin administrador), registra `mockix://` y se actualiza solo. |
-| **CLI** | `npm i -g https://github.com/LuisEBautistaR/mockix/releases/download/v0.1.1/mockix-0.1.1.tgz`, con Node 22 o superior. Aún no está en el registro de npm. |
+| **CLI** | `npm i -g @fulerbdev/mockix`, con Node 22 o superior. Instala el comando `mockix`. El nombre lleva prefijo porque npm rechaza `mockix` por parecido a otro paquete. |
 | **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.1` |
 
 **Docker:**
@@ -568,7 +568,6 @@ src/
 
 - **Sin firma de código:** el instalador aún no está firmado (la firma con SignPath está pendiente), así que SmartScreen avisa al instalarlo. El workflow de release firma en cuanto existan sus secretos.
 - **Icono y versión del `.exe`:** el paso propio de `electron-builder` falla en este equipo por un bloqueo transitorio del archivo. `build/after-pack.cjs` los escribe un paso antes y reintenta.
-- **CLI aún no está en npm:** `npm i -g mockix` todavía no existe. La CLI se instala desde el `.tgz` de GitHub Releases o desde `npm i -g https://protohub.digital/descargas/mockix-0.1.1.tgz`.
 
 ## Publicar una versión
 
