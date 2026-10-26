@@ -4,7 +4,7 @@
 
 Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de escritorio, CLI y Docker. Es la app hermana de Sendix. Sistema visual en [docs/DESIGN.md](docs/DESIGN.md).
 
-Estado: **M10, listo para publicar**: instalador de Windows con auto-actualización, CLI para npm e imagen Docker. Falta publicarlos (ver [Publicar una versión](#publicar-una-versión)).
+Estado: **0.1.1 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), e imagen Docker en `ghcr.io/luisebautistar/mockix`. La CLI todavía no está en npm (ver [Instalación](#instalación)).
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
@@ -23,13 +23,15 @@ Estado: **M10, listo para publicar**: instalador de Windows con auto-actualizaci
 | Dónde | Cómo |
 |---|---|
 | **Windows** | `Mockix-<versión>-setup.exe` de GitHub Releases. Instala por usuario (sin administrador), registra `mockix://` y se actualiza solo. |
-| **CLI (npm)** | `npm i -g mockix`, con Node 22 o superior. |
-| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix` |
+| **CLI** | `npm i -g https://github.com/LuisEBautistaR/mockix/releases/download/v0.1.1/mockix-0.1.1.tgz`, con Node 22 o superior. Aún no está en el registro de npm. |
+| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.1` |
 
 **Docker:**
+- **Etiquetas:** una por versión (`v0.1.1`) y `latest`, que apunta a la más reciente.
+- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.1 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
 - **Imagen:** parte de `distroless/nodejs24` (sin shell ni gestor de paquetes) y corre como usuario sin privilegios.
 - **Escritura:** con `--read-only` solo escribe en el volumen montado (`.mockix/` del workspace).
-- **Mocks:** sirve los de `/mocks` escuchando en `0.0.0.0`.
+- **Mocks:** sirve los de `/mocks` escuchando en `0.0.0.0`; el aviso que lo dice al arrancar es normal dentro del contenedor, que solo es accesible por los puertos que publiques con `-p`. Publica el puerto de cada mock (`-p 3001:3001`).
 - **Salud:** el `HEALTHCHECK` consulta `/__mockix/health` en el puerto `MOCKIX_HEALTH_PORT` (3000 por defecto).
 - **gRPC:** pon un puerto fijo en `mock.yaml` (`grpc: { port: 50051 }`) y publícalo con `-p 50051:50051`.
 
@@ -566,7 +568,7 @@ src/
 
 - **Sin firma de código:** el instalador aún no está firmado (la firma con SignPath está pendiente), así que SmartScreen avisa al instalarlo. El workflow de release firma en cuanto existan sus secretos.
 - **Icono y versión del `.exe`:** el paso propio de `electron-builder` falla en este equipo por un bloqueo transitorio del archivo. `build/after-pack.cjs` los escribe un paso antes y reintenta.
-- **CLI y Docker aún sin publicar:** `npm i -g mockix` y la imagen de `ghcr.io` no existen todavía. La CLI se instala desde `npm i -g https://protohub.digital/descargas/mockix-0.1.1.tgz`.
+- **CLI aún no está en npm:** `npm i -g mockix` todavía no existe. La CLI se instala desde el `.tgz` de GitHub Releases o desde `npm i -g https://protohub.digital/descargas/mockix-0.1.1.tgz`.
 
 ## Publicar una versión
 
@@ -575,7 +577,7 @@ src/
 3. El workflow `release` (`.github/workflows/release.yml`):
    - pasa `npm run check` en Windows;
    - genera el instalador y crea un **borrador** de release con `Mockix-<v>-setup.exe`, su `.blockmap` y `latest.yml`;
-   - construye el paquete npm y la imagen Docker, que sube a `ghcr.io` si el tag existe.
+   - construye el paquete npm y la imagen Docker, que sube a `ghcr.io` si el tag existe. La imagen se publica en cuanto se crea el tag (también si lo crea `gh release create`), aunque el release siga en borrador.
 4. Secretos opcionales; sin ellos, ese paso solo construye:
    - `SIGNPATH_API_TOKEN` (y la variable `SIGNPATH_ORGANIZATION_ID`) firma el instalador;
    - `NPM_TOKEN` publica `mockix` en npm.
