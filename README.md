@@ -578,7 +578,7 @@ src/
    - **En GitHub:** crea el tag (`git tag v<v> && git push origin v<v>`) y ejecuta a mano el workflow `release` sobre ese tag. Pasa `npm run check` en Windows, genera el instalador y deja un **borrador** de release con el instalador, su `.blockmap` y `latest.yml`. Revisa el borrador y publícalo.
 3. Al publicarse el release, el workflow `release` (`.github/workflows/release.yml`) publica la CLI en npm y la imagen Docker en `ghcr.io` (`v<v>` y `latest`; una versión preliminar no mueve `latest`). Crear o subir un tag solo no publica nada.
 4. Secretos opcionales; sin ellos, ese paso se salta:
-   - `NPM_TOKEN` publica `mockix` en npm;
+   - `NPM_TOKEN` publica `@fulerbdev/mockix` en npm (el nombre `mockix` lo rechaza npm por parecido a `mockjs`);
    - `SIGNPATH_API_TOKEN` (y la variable `SIGNPATH_ORGANIZATION_ID`) firma el instalador del borrador.
 5. Desde que el release está publicado, las apps instaladas lo reciben como actualización.
 

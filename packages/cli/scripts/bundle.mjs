@@ -38,7 +38,7 @@ await writeFile(
   join(out, "package.json"),
   `${JSON.stringify(
     {
-      name: "mockix",
+      name: "@fulerbdev/mockix",
       version: cli.version,
       description: "Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con contrato OpenAPI, escenarios, caos, grabación y servidor MCP.",
       author: cli.author,
@@ -61,6 +61,7 @@ await writeFile(
 Simulador de APIs local primero. Sirve los mocks de un workspace de Mockix desde la terminal, en CI o en Docker.
 
 \`\`\`bash
+npm i -g @fulerbdev/mockix    # instala el comando mockix
 mockix init mi-proyecto       # workspace de ejemplo
 mockix serve mi-proyecto      # sirve sus mocks y recarga al guardar
 mockix validate mi-proyecto   # revisa todos los archivos
