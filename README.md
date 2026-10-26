@@ -572,16 +572,15 @@ src/
 
 ## Publicar una versión
 
-1. Sube la versión en `package.json` de `apps/desktop` y `packages/cli` y haz commit.
-2. Crea y sube el tag: `git tag v0.2.0 && git push origin v0.2.0`.
-3. El workflow `release` (`.github/workflows/release.yml`):
-   - pasa `npm run check` en Windows;
-   - genera el instalador y crea un **borrador** de release con `Mockix-<v>-setup.exe`, su `.blockmap` y `latest.yml`;
-   - construye el paquete npm y la imagen Docker, que sube a `ghcr.io` si el tag existe. La imagen se publica en cuanto se crea el tag (también si lo crea `gh release create`), aunque el release siga en borrador.
-4. Secretos opcionales; sin ellos, ese paso solo construye:
-   - `SIGNPATH_API_TOKEN` (y la variable `SIGNPATH_ORGANIZATION_ID`) firma el instalador;
-   - `NPM_TOKEN` publica `mockix` en npm.
-5. Revisa el borrador y publícalo. Desde ese momento, las apps instaladas lo reciben como actualización.
+1. Sube la versión en los `package.json` (raíz, `apps/desktop`, `packages/core`, `packages/cli` y su dependencia `@mockix/core`) y haz commit.
+2. Prepara el release, de una de dos formas:
+   - **En local** (como la 0.1.1): `npm run dist` y `npm run pack:cli`, y luego `gh release create v<v> --target main` con `Mockix-<v>-setup.exe`, su `.blockmap`, `latest.yml`, el `.sha256` y `mockix-<v>.tgz`. El release queda publicado al momento.
+   - **En GitHub:** crea el tag (`git tag v<v> && git push origin v<v>`) y ejecuta a mano el workflow `release` sobre ese tag. Pasa `npm run check` en Windows, genera el instalador y deja un **borrador** de release con el instalador, su `.blockmap` y `latest.yml`. Revisa el borrador y publícalo.
+3. Al publicarse el release, el workflow `release` (`.github/workflows/release.yml`) publica la CLI en npm y la imagen Docker en `ghcr.io` (`v<v>` y `latest`; una versión preliminar no mueve `latest`). Crear o subir un tag solo no publica nada.
+4. Secretos opcionales; sin ellos, ese paso se salta:
+   - `NPM_TOKEN` publica `mockix` en npm;
+   - `SIGNPATH_API_TOKEN` (y la variable `SIGNPATH_ORGANIZATION_ID`) firma el instalador del borrador.
+5. Desde que el release está publicado, las apps instaladas lo reciben como actualización.
 
 El workflow `ci` (check completo en Windows) corre en los pull requests y a mano, no en cada push.
 
