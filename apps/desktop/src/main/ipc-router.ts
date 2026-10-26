@@ -1,6 +1,8 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme, shell } from "electron";
+import { existsSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { z } from "zod";
-import { WorkspaceExistsError, writeExampleWorkspace } from "@mockix/core";
+import { MOCK_FILE, WORKSPACE_FILE, WorkspaceExistsError, writeEmptyWorkspace, writeExampleWorkspace } from "@mockix/core";
 import { ErrorCodes, type Outcome } from "@shared/rpc";
 import { IpcChannels, type AppInfo, type Theme, type WorkspaceState } from "@shared/ipc";
 import type { RouteDraft } from "@mockix/core";
@@ -82,6 +84,16 @@ export function registerIpcRouter({ mocks, workspace, editor, recorder, insight,
   };
 
   const openFolder = async (dir: string): Promise<Outcome<WorkspaceState>> => {
+    if (!existsSync(join(dir, WORKSPACE_FILE))) {
+      // A mock's own folder is not a workspace: point at the one that holds it instead of nesting mocks in it.
+      if (existsSync(join(dir, MOCK_FILE))) {
+        const parent = dirname(dir);
+        const where = basename(parent) === "mocks" ? `abre ${dirname(parent)}` : "abre la carpeta que contiene su carpeta mocks/";
+        return { ok: false, error: { code: ErrorCodes.notWorkspace, message: `Esa carpeta es el mock «${basename(dir)}», no un workspace: ${where}.` } };
+      }
+      // Any other folder becomes an empty workspace; mocks already under mocks/ load as they are.
+      await writeEmptyWorkspace(dir);
+    }
     await workspace.open(dir);
     await rememberWorkspace(dir);
     return { ok: true, value: workspace.state };

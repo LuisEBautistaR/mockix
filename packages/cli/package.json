@@ -1,6 +1,6 @@
 {
   "name": "@mockix/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI de Mockix: sirve mocks desde la terminal, en CI o en Docker.",
   "author": "Luis E. Bautista",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "bundle": "node scripts/bundle.mjs"
   },
   "dependencies": {
-    "@mockix/core": "0.1.0",
+    "@mockix/core": "0.1.1",
     "yaml": "2.9.1",
     "@modelcontextprotocol/sdk": "1.32.1"
   }

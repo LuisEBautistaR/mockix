@@ -1,6 +1,6 @@
 {
   "name": "@mockix/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Núcleo de Mockix: carga definiciones de mocks y los sirve. Node puro, sin Electron.",
   "author": "Luis E. Bautista",
   "license": "MIT",

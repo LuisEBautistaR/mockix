@@ -79,4 +79,5 @@ export const ErrorCodes = {
   hasProblems: "HAS_PROBLEMS",
   noWorkspace: "NO_WORKSPACE",
   workspaceExists: "WORKSPACE_EXISTS",
+  notWorkspace: "NOT_WORKSPACE",
 } as const;

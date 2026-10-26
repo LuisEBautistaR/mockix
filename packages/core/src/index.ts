@@ -64,7 +64,7 @@ export {
 export { allProblems, hasProblems, loadWorkspace, type LoadOptions, type LoadedMock, type Problem, type WorkspaceLoad } from "./loader.js";
 export { GENERATED_TLS_DIR, ensureSelfSigned, type TlsPair } from "./tls.js";
 export { watchWorkspace, type WorkspaceWatcher } from "./watch.js";
-export { WorkspaceExistsError, writeExampleWorkspace } from "./example.js";
+export { WorkspaceExistsError, writeEmptyWorkspace, writeExampleWorkspace } from "./example.js";
 export { BucketStore } from "./buckets.js";
 export { TemplateEngine, TemplateError, checkTemplate, fixTripleClose, getPath, previewTemplate, type PreviewData, type TemplateDeps } from "./template.js";
 export { seededRandom } from "./random.js";

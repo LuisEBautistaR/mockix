@@ -566,7 +566,7 @@ src/
 
 - **Sin firma de código:** el instalador aún no está firmado (la firma con SignPath está pendiente), así que SmartScreen avisa al instalarlo. El workflow de release firma en cuanto existan sus secretos.
 - **Icono y versión del `.exe`:** el paso propio de `electron-builder` falla en este equipo por un bloqueo transitorio del archivo. `build/after-pack.cjs` los escribe un paso antes y reintenta.
-- **CLI y Docker aún sin publicar:** `npm i -g mockix` y la imagen de `ghcr.io` no existen todavía. La CLI se instala desde `npm i -g https://protohub.digital/descargas/mockix-0.1.0.tgz`.
+- **CLI y Docker aún sin publicar:** `npm i -g mockix` y la imagen de `ghcr.io` no existen todavía. La CLI se instala desde `npm i -g https://protohub.digital/descargas/mockix-0.1.1.tgz`.
 
 ## Publicar una versión
 

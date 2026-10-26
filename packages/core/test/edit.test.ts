@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { EditError, allProblems, createMock, deleteRoute, loadWorkspace, readRoute, startMock, writeExampleWorkspace, writeRoute, type RouteDraft } from "@mockix/core";
+import { EditError, WorkspaceExistsError, allProblems, createMock, deleteRoute, loadWorkspace, readRoute, startMock, writeEmptyWorkspace, writeExampleWorkspace, writeRoute, type RouteDraft } from "@mockix/core";
 
 const dirs: string[] = [];
 async function example(): Promise<string> {
@@ -111,5 +111,25 @@ describe("createMock and deleteRoute", () => {
     expect(trashed).toHaveLength(1);
     expect(await deleteRoute(ws, "tienda", "salud")).toBe("routes/salud.yaml");
     await expect(readRoute(ws, "tienda", "salud")).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("refuses a folder that is not a workspace without leaving a half-made mock", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mockix-edit-"));
+    dirs.push(dir);
+    await expect(createMock(dir, "pruebas", 3000, "/v3/run")).rejects.toMatchObject({ code: "NOT_WORKSPACE" });
+    expect(await readdir(dir)).toEqual([]);
+  });
+
+  it("turns a folder with orphan mocks into a workspace that loads them", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mockix-edit-"));
+    dirs.push(dir);
+    await mkdir(join(dir, "mocks", "huerfano", "routes"), { recursive: true });
+    await writeFile(join(dir, "mocks", "huerfano", "mock.yaml"), "port: 3005\n");
+    expect(await writeEmptyWorkspace(dir)).toEqual(["mockix.workspace.yaml", ".gitignore"]);
+    await expect(writeEmptyWorkspace(dir)).rejects.toBeInstanceOf(WorkspaceExistsError);
+    await createMock(dir, "pruebas", 3000);
+    const load = await loadWorkspace(dir);
+    expect(allProblems(load)).toEqual([]);
+    expect(load.mocks.map((m) => m.name)).toEqual(["huerfano", "pruebas"]);
   });
 });

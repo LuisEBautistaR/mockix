@@ -11,7 +11,7 @@ import { z } from "zod";
 import { MOCK_FILE, WORKSPACE_FILE, mockFile, routeFile, slug, workspaceFile, type RouteFile } from "./format.js";
 
 export class EditError extends Error {
-  readonly code: "NOT_FOUND" | "INVALID" | "EXISTS" | "OUTSIDE";
+  readonly code: "NOT_FOUND" | "INVALID" | "EXISTS" | "OUTSIDE" | "NOT_WORKSPACE";
   readonly issues: Array<{ path: string; message: string }>;
   constructor(code: EditError["code"], message: string, issues: Array<{ path: string; message: string }> = []) {
     super(message);
@@ -322,6 +322,9 @@ export interface MockExtras {
 
 /** Creates mocks/<name>/mock.yaml and routes/ (and lists it in mockix.workspace.yaml when that file lists mocks). */
 export async function createMock(workspaceDir: string, name: string, port: number, prefix = "", extras: MockExtras = {}): Promise<void> {
+  // Checked before writing anything: a mock outside a workspace would be left half made and never load.
+  const wsFile = join(resolve(workspaceDir), WORKSPACE_FILE);
+  if (!(await exists(wsFile))) throw new EditError("NOT_WORKSPACE", `${resolve(workspaceDir)} no es un workspace de Mockix: falta ${WORKSPACE_FILE}`);
   const root = mockDir(workspaceDir, name);
   if (await exists(root)) throw new EditError("EXISTS", `A mock named "${name}" already exists`);
   const settings: Record<string, unknown> = { port };
@@ -337,7 +340,6 @@ export async function createMock(workspaceDir: string, name: string, port: numbe
   await mkdir(join(root, "routes"), { recursive: true });
   await writeFile(join(root, MOCK_FILE), `# Ajustes del mock "${name}".\n${stringify(settings)}`);
 
-  const wsFile = join(resolve(workspaceDir), WORKSPACE_FILE);
   const doc = parseDocument(await readFile(wsFile, "utf8"));
   const ws = workspaceFile.safeParse(doc.toJS());
   if (ws.success && ws.data.mocks && !ws.data.mocks.includes(name)) {

@@ -686,6 +686,23 @@ export class WorkspaceExistsError extends Error {
   }
 }
 
+/**
+ * Turns `dir` into an empty workspace: a mockix.workspace.yaml (and a .gitignore
+ * when there is none). Mock folders already under mocks/ are kept and load as they are.
+ */
+export async function writeEmptyWorkspace(dir: string): Promise<string[]> {
+  await mkdir(dir, { recursive: true });
+  const present = await readdir(dir);
+  if (present.includes(WORKSPACE_FILE)) throw new WorkspaceExistsError(dir);
+  await writeFile(join(dir, WORKSPACE_FILE), `# Workspace de Mockix. Cada carpeta de mocks/ es un mock con su propio puerto.\nformat: 1\n`, { flag: "wx" });
+  const written = [WORKSPACE_FILE];
+  if (!present.includes(".gitignore")) {
+    await writeFile(join(dir, ".gitignore"), FILES[".gitignore"]!, { flag: "wx" });
+    written.push(".gitignore");
+  }
+  return written;
+}
+
 /** Writes the example workspace into `dir` (created if needed). Refuses to overwrite an existing workspace. */
 export async function writeExampleWorkspace(dir: string): Promise<string[]> {
   await mkdir(dir, { recursive: true });

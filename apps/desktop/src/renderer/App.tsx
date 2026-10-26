@@ -10,7 +10,7 @@ import { LinkDialog } from "./components/Links";
 import { RecordingsView } from "./components/Recordings";
 import { ScenariosView } from "./components/Scenarios";
 import { Sidebar } from "./components/Sidebar";
-import { MockOverview, SettingsView, Welcome } from "./components/Views";
+import { MockOverview, Problems, SettingsView, Welcome } from "./components/Views";
 import { samplePath } from "./lib/format";
 import { useStore } from "./state/store";
 
@@ -71,7 +71,14 @@ function Main() {
             <MockOverview mock={mock} />
           ) : (
             <div className="welcome">
-              <p className="note">Este workspace no tiene mocks todavía. Crea uno con el botón de servidor de la barra lateral.</p>
+              {workspace.problems.length > 0 ? (
+                <>
+                  <h2 className="section-label err-t">Problemas del workspace</h2>
+                  <Problems problems={workspace.problems} testId="workspace-problems" />
+                </>
+              ) : (
+                <p className="note">Este workspace no tiene mocks todavía. Crea uno con el botón de servidor de la barra lateral.</p>
+              )}
             </div>
           )}
         </>

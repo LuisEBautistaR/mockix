@@ -4,7 +4,7 @@
  * files, recovery after a crash, and the folder remembered between launches.
  */
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer as createHttpServer } from "node:http";
 import { createServer, type Server } from "node:net";
 import { tmpdir } from "node:os";
@@ -109,6 +109,40 @@ test("opens a hardened window and the bridge rejects bad calls", async () => {
     });
     await win.waitForTimeout(500);
     expect(win.url()).toBe("app://mockix/index.html");
+  } finally {
+    await app.close();
+  }
+});
+
+test("opens a folder without mockix.workspace.yaml and refuses a mock's own folder", async () => {
+  // A folder with a mock but no workspace file, as an older build left behind when "Nuevo mock" failed.
+  const dir = await temp("mockix-e2e-plain-");
+  const orphan = join(dir, "mocks", "documentos");
+  await mkdir(join(orphan, "routes"), { recursive: true });
+  await writeFile(join(orphan, "mock.yaml"), "port: 0\n");
+  const { app, win } = await launch();
+  const pick = (folder: string) =>
+    app.evaluate(async ({ dialog }, f) => {
+      dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [f] })) as typeof dialog.showOpenDialog;
+    }, folder);
+  try {
+    await pick(orphan);
+    await win.getByTestId("open-workspace").click();
+    await expect(win.getByTestId("notice")).toContainText(`Esa carpeta es el mock «documentos», no un workspace: abre ${dir}.`);
+    expect(await readdir(orphan)).toEqual(["mock.yaml", "routes"]);
+
+    await pick(dir);
+    await win.getByTestId("open-workspace").click();
+    await expect(win.getByTestId("mock-row-documentos")).toBeVisible();
+    expect(await readFile(join(dir, "mockix.workspace.yaml"), "utf8")).toContain("format: 1");
+
+    await win.getByTestId("new-mock").click();
+    await win.getByTestId("new-mock-name").fill("pruebas");
+    await win.getByTestId("new-mock-port").fill("0");
+    await win.getByTestId("new-mock-prefix").fill("/v3/run");
+    await win.getByTestId("new-mock-create").click();
+    await expect(win.getByTestId("mock-row-pruebas")).toBeVisible();
+    expect(await readFile(join(dir, "mocks", "pruebas", "mock.yaml"), "utf8")).toContain("prefix: /v3/run");
   } finally {
     await app.close();
   }
