@@ -2,7 +2,9 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
 import { dirname, extname, join, resolve } from "node:path";
 import { EditError, createMock, setRouteOrder, writeRoute } from "../edit.js";
+import { stringify } from "yaml";
 import { chaosProfilesFor } from "./openapi-extras.js";
+import { isSwagger2, swagger2ToOpenApi3 } from "./swagger2.js";
 import { importHar } from "./har.js";
 import { importMockoon } from "./mockoon.js";
 import { ImportError, detectFormat, parseSource, type ImportFormat, type ImportReport, type ImportResult, type ImportedMock } from "./model.js";
@@ -33,9 +35,17 @@ export async function importSource(text: string, fileName: string, options: Impo
   switch (format) {
     case "openapi": {
       const result = await importOpenApi(value, fileName);
-      // Only OpenAPI 3 can be a contract: the checker does not read Swagger 2.
-      const v3 = typeof (value as Record<string, unknown>)["openapi"] === "string";
-      return v3 ? { ...result, contractSource: { text, fileName } } : result;
+      if (!isSwagger2(value)) return { ...result, contractSource: { text, fileName } };
+      // The checker reads OpenAPI 3: a Swagger 2 contract is connected as its conversion; the user's file stays as it is.
+      try {
+        const converted = swagger2ToOpenApi3(value);
+        const yamlText = `# Convertido por Mockix de Swagger 2.0 a OpenAPI 3 al importar ${fileName}.\n${stringify(converted, { lineWidth: 0, aliasDuplicateObjects: false })}`;
+        result.report.extras?.notes.push(`Era Swagger 2.0: el contrato que se conecta es su conversión a OpenAPI 3. Tu archivo ${fileName} no cambia.`);
+        return { ...result, contractSource: { text: yamlText, fileName: fileName.replace(/\.(ya?ml|json)$/i, "") + ".yaml" }, converted: true };
+      } catch (err) {
+        result.report.extras?.notes.push(`Es Swagger 2.0 y no se pudo convertir a OpenAPI 3 (${err instanceof Error ? err.message : String(err)}): las rutas se crean, pero el contrato no se conecta.`);
+        return result;
+      }
     }
     case "postman":
       return withProtos(importPostman(value, fileName), options.baseDir ?? process.cwd());

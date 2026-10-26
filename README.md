@@ -6,7 +6,7 @@ Simulador de APIs local primero: HTTP, WebSocket, Socket.IO y gRPC, con app de e
 
 **¿Primera vez?** Empieza por la [guía rápida](docs/GUIA-RAPIDA.md) (también en [protohub.digital/mockix/guia](https://protohub.digital/mockix/guia/)). Cada función se explica en el [manual de uso](docs/MANUAL.md).
 
-Estado: **0.1.4 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
+Estado: **0.1.5 publicada**: instalador de Windows con auto-actualización en [GitHub Releases](https://github.com/LuisEBautistaR/mockix/releases/latest) y en [protohub.digital/mockix](https://protohub.digital/mockix/), la CLI en npm como `@fulerbdev/mockix` y la imagen Docker en `ghcr.io/luisebautistar/mockix`.
 - **Formato y servidor (M1):** un archivo YAML por ruta, reglas, modos, CORS, TLS y recarga en caliente.
 - **Plantillas y datos (M2):** datos falsos reproducibles, data buckets, CRUD, callbacks, proxy parcial, API de control y log en SQLite.
 - **Escritorio (M3):** el editor del prototipo aprobado. Crea mocks y rutas, edita las respuestas, las prueba y muestra cada petición con su desglose de tiempos.
@@ -26,11 +26,11 @@ Estado: **0.1.4 publicada**: instalador de Windows con auto-actualización en [G
 |---|---|
 | **Windows** | `Mockix-<versión>-setup.exe` de GitHub Releases. Instala por usuario (sin administrador), registra `mockix://` y se actualiza solo. Una actualización no quita `mockix://`, y si algo lo quita, Mockix lo vuelve a registrar al recibir el foco. |
 | **CLI** | `npm i -g @fulerbdev/mockix`, con Node 22 o superior. Instala el comando `mockix`. El nombre lleva prefijo porque npm rechaza `mockix` por parecido a otro paquete. |
-| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.4` |
+| **Docker** | `docker run --rm --read-only -v ./MiProyecto:/mocks -p 3000:3000 ghcr.io/luisebautistar/mockix:v0.1.5` |
 
 **Docker:**
-- **Etiquetas:** una por versión (`v0.1.4`) y `latest`, que apunta a la más reciente.
-- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.4 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
+- **Etiquetas:** una por versión (`v0.1.5`) y `latest`, que apunta a la más reciente.
+- **Empezar:** sin un workspace, `docker run --rm -v ./MiProyecto:/mocks ghcr.io/luisebautistar/mockix:v0.1.5 init /mocks` crea el de ejemplo (sin `--read-only`, porque escribe los archivos). Con `import` y `validate` pasa lo mismo: el último argumento es la carpeta, `/mocks`.
 - **Imagen:** parte de `distroless/nodejs24` (sin shell ni gestor de paquetes) y corre como usuario sin privilegios.
 - **Escritura:** con `--read-only` solo escribe en el volumen montado (`.mockix/` del workspace).
 - **Mocks:** sirve los de `/mocks` escuchando en `0.0.0.0`; el aviso que lo dice al arrancar es normal dentro del contenedor, que solo es accesible por los puertos que publiques con `-p`. Publica el puerto de cada mock (`-p 3001:3001`).
@@ -194,7 +194,7 @@ Cada importación crea un mock nuevo en `mocks/<nombre>/` con un informe de lo q
 | **Entorno de Mockoon** | Rutas, respuestas, reglas (y/o, negación), modos aleatorio, secuencial y fallback, latencias, cabeceras del entorno, data buckets, rutas CRUD, prefijo, CORS y proxy. Las respuestas con helpers sin equivalente se sirven como texto, con aviso. Las rutas WebSocket se omiten hasta M8. |
 
 **Un mock completo desde un contrato.** Con un OpenAPI, la importación (y **Nuevo mock → Desde un contrato OpenAPI** en el escritorio) también:
-- **Conecta el contrato:** lo copia a `contracts/` (o reutiliza el que ya está ahí con el mismo contenido) y lo pone en `mock.yaml` en modo `warn`. Solo OpenAPI 3; un Swagger 2 no se conecta y el informe lo dice. `--no-contract` lo evita.
+- **Conecta el contrato:** lo copia a `contracts/` (o reutiliza el que ya está ahí con el mismo contenido) y lo pone en `mock.yaml` en modo `warn`. Un Swagger 2.0 se convierte a OpenAPI 3 (servidores, `definitions` y demás a `components`, cuerpos a `requestBody`, ejemplos por tipo de contenido) y se conecta esa conversión, con el archivo original intacto. `--no-contract` lo evita.
 - **Datos y CRUD:** un recurso con `GET /x`, `GET /x/{id}` y alguna escritura (`POST /x`, `PUT`, `PATCH` o `DELETE /x/{id}`) pasa a un bucket con los ejemplos (o 3 registros generados del esquema) y una ruta CRUD; una lista envuelta en `{ data, total }` usa `crud.list`.
 - **Escenarios:** un campo `estado`, `status`, `estatus`, `state`, `situacion` o `etapa` con `enum`, más acciones `POST/PUT/PATCH /x/{id}/<acción>` (o `DELETE` hacia un estado de cancelación), da `scenarios/x.yaml`. Los estados siguen el orden del `enum` y cada acción va al estado que más se le parece (`pago` → `pagado`). `GET /x/{id}` responde el estado actual con el valor original del contrato.
 - **Caos:** `chaos/<mock>.yaml` con `<mock>-lenta`, `<mock>-inestable` y `<mock>-caida`, que usan los 5xx documentados, sin aplicar. `--no-chaos` lo evita.

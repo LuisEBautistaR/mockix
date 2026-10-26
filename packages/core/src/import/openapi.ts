@@ -145,7 +145,6 @@ export async function importOpenApi(value: unknown, source: string): Promise<Imp
 
   const enriched = enrichOpenApi(ops, routes, report, selectable);
   report.extras = enriched.extras;
-  if (swagger2) report.extras.notes.push("Es Swagger 2.0: no se conecta como contrato porque la revisión de peticiones necesita OpenAPI 3. Si lo conviertes a OpenAPI 3 y lo vuelves a importar, queda conectado.");
   // A CRUD route stands for several operations.
   report.routes = enriched.routes.length;
 

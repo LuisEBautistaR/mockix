@@ -75,8 +75,10 @@ export interface ImportExtras {
 export interface ImportResult {
   mock: ImportedMock;
   report: ImportReport;
-  /** The source itself, when it can be the mock's contract (OpenAPI). */
+  /** The source itself, when it can be the mock's contract (OpenAPI 3, or a Swagger 2 converted to it). */
   contractSource?: { text: string; fileName: string };
+  /** The contract is a conversion of a Swagger 2.0 source. */
+  converted?: boolean;
 }
 
 export class ImportError extends Error {

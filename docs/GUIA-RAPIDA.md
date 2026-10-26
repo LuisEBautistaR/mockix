@@ -101,7 +101,7 @@ Sin eso, el mock responde la respuesta normal (la primera correcta del contrato)
 **Si tu contrato es diferente:**
 
 - **Solo acciones** (todo es `POST` o `PUT`, sin `GET /recurso/{id}`): no hay datos ni estados que deducir, así que quedan las rutas con todas sus respuestas, que puedes elegir como arriba. El informe lo dice.
-- **Swagger 2.0:** las rutas se crean igual, pero el contrato no se conecta, porque la revisión de peticiones necesita OpenAPI 3. El informe lo avisa.
+- **Swagger 2.0:** Mockix lo convierte a OpenAPI 3 y conecta esa conversión, en `contracts/`. Tu archivo no cambia, y el informe lo dice.
 
 ¿Tienes una colección de Postman o Sendix, un HAR o un entorno de Mockoon? Usa el icono **Importar** (la flecha hacia abajo). ¿Prefieres empezar de cero? En **Nuevo mock** elige **Vacío** y luego usa **+** para añadir rutas.
 

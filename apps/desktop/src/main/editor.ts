@@ -121,7 +121,7 @@ export class WorkspaceEditor {
       let port = result.mock.port;
       while (used.has(port)) port++;
       const title = result.report.source.replace(/\s*\([^)]*\)$/, "");
-      return { ok: true, value: { fileName: basename(file), title, name: result.mock.name, port, prefix: result.mock.prefix, operations: result.report.routes, connectable: result.contractSource !== undefined } };
+      return { ok: true, value: { fileName: basename(file), title, name: result.mock.name, port, prefix: result.mock.prefix, operations: result.report.routes, connectable: result.contractSource !== undefined, converted: result.converted === true } };
     } catch (err) {
       return fromError(err);
     }

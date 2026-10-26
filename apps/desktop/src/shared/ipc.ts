@@ -605,8 +605,10 @@ export interface ContractPreview {
   port: number;
   prefix: string;
   operations: number;
-  /** False for Swagger 2: it makes routes, but only OpenAPI 3 can be connected as the contract. */
+  /** False when it cannot be connected as the contract (a Swagger 2 that could not be converted). */
   connectable: boolean;
+  /** A Swagger 2.0 source: what gets connected is its conversion to OpenAPI 3. */
+  converted: boolean;
 }
 
 export interface FromContractOptions {

@@ -191,6 +191,42 @@ test("creates a mock from an OpenAPI contract with its contract, data, scenario 
   }
 });
 
+test("connects a Swagger 2.0 contract as its conversion to OpenAPI 3", async () => {
+  const ws = await temp("mockix-e2e-swagger-");
+  await writeEmptyWorkspace(ws);
+  const file = join(await temp("mockix-e2e-swagger-src-"), "legado.yaml");
+  await writeFile(
+    file,
+    `swagger: "2.0"
+info: { title: Legado, version: "1" }
+basePath: /api
+paths:
+  /altas:
+    post:
+      parameters: [{ name: alta, in: body, required: true, schema: { type: object, required: [nombre], properties: { nombre: { type: string } } } }]
+      responses: { "201": { description: Creada }, "400": { description: Error } }
+`,
+  );
+  const { app, win } = await launch({ workspace: ws });
+  try {
+    await app.evaluate(async ({ dialog }, f) => {
+      dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [f] })) as typeof dialog.showOpenDialog;
+    }, file);
+    await win.getByTestId("start-from-contract").click();
+    await win.getByTestId("new-mock-pick").click();
+    await expect(win.getByTestId("new-mock-connect")).toBeEnabled();
+    await expect(win.getByTestId("new-mock-connect")).toBeChecked();
+    await expect(win.getByTestId("dialog-new-mock")).toContainText("se conecta su conversión a OpenAPI 3");
+    await win.getByTestId("new-mock-port").fill("0");
+    await win.getByTestId("new-mock-create").click();
+    await expect(win.getByTestId("import-extras")).toContainText("contracts/legado.openapi.yaml");
+    await expect(win.getByTestId("dialog-import")).toContainText("Era Swagger 2.0");
+    expect(await readFile(join(ws, "contracts", "legado.openapi.yaml"), "utf8")).toContain("openapi: 3.0.3");
+  } finally {
+    await app.close();
+  }
+});
+
 test("moves a running mock to the trash after confirming, and stops it first", async () => {
   const ws = await exampleWorkspace();
   const { win, app } = await launch({ workspace: ws });

@@ -89,7 +89,10 @@ function NewMockDialog({ start }: { start: "contract" | "empty" }) {
         )}
         {fromContract && preview && (
           <p className="picked" data-testid="new-mock-picked">
-            <span className="mono">{preview.fileName}</span> · {preview.title} · {preview.operations} {preview.operations === 1 ? "ruta" : "rutas"}{" "}
+            <span className="mono">{preview.fileName}</span>
+            <span className="muted">
+              {preview.title} · {preview.operations} {preview.operations === 1 ? "ruta" : "rutas"}
+            </span>
             <button type="button" className="link-btn" onClick={() => void pick()}>
               Cambiar
             </button>
@@ -115,9 +118,13 @@ function NewMockDialog({ start }: { start: "contract" | "empty" }) {
         )}
         {fromContract && preview && (
           <div className="check-col">
-            <label className="check-row" title={preview.connectable ? "" : "Es Swagger 2.0: la revisión de peticiones necesita OpenAPI 3"}>
+            <label className="check-row" title={preview.connectable ? "" : "No se pudo convertir a OpenAPI 3: la revisión de peticiones lo necesita"}>
               <input type="checkbox" checked={connect && preview.connectable} disabled={!preview.connectable} onChange={(e) => setConnect(e.target.checked)} data-testid="new-mock-connect" />{" "}
-              {preview.connectable ? "Conectar el contrato en modo avisar" : "Conectar el contrato (no disponible: es Swagger 2.0, se necesita OpenAPI 3)"}
+              {!preview.connectable
+                ? "Conectar el contrato (no disponible: no se pudo convertir a OpenAPI 3)"
+                : preview.converted
+                  ? "Conectar el contrato en modo avisar (es Swagger 2.0: se conecta su conversión a OpenAPI 3)"
+                  : "Conectar el contrato en modo avisar"}
             </label>
             <label className="check-row">
               <input type="checkbox" checked={chaos} onChange={(e) => setChaos(e.target.checked)} data-testid="new-mock-chaos" /> Preparar perfiles de caos con sus errores (apagados)
