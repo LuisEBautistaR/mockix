@@ -326,6 +326,9 @@ test("creates a mock, a route and a response in the editor, tests it and reads t
     // Start the mock from the title bar and test the route: the log shows it with its strata.
     await win.getByRole("button", { name: "Iniciar pagos" }).click();
     await expect(win.getByTestId("route-test")).toBeEnabled({ timeout: 20_000 });
+    // Saved, nothing else next to Probar: the old disabled "Abrir en Sendix" placeholder is gone.
+    await expect(win.getByTestId("route-save")).toHaveCount(0);
+    await expect(win.getByRole("button", { name: "Abrir en Sendix" })).toHaveCount(0);
     await win.getByTestId("route-test").click();
     await expect(win.getByTestId("log-row").first()).toContainText("/api/cobros/1");
     await expect(win.getByTestId("log-row").first()).toContainText("201 Created");

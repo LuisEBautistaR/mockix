@@ -53,7 +53,11 @@ if (!app.requestSingleInstanceLock()) {
   const live = new LiveTester(workspace, mocks);
   const links = new LinkService(log);
   const updates = new UpdateService(log);
-  if (app.isPackaged) app.setAsDefaultProtocolClient("mockix");
+  if (app.isPackaged) {
+    LinkService.ensureRegistered(app);
+    // Checked again on focus: an update could remove it after the start, and Sendix only offers "crear mock" while it exists.
+    app.on("browser-window-focus", () => LinkService.ensureRegistered(app) && log("registered mockix:// again"));
+  }
   const firstLink = LinkService.fromArgv(process.argv);
 
   // .mockix/running.json (and Sendix environments) follow the running mocks.

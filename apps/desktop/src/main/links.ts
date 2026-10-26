@@ -31,6 +31,15 @@ export class LinkService extends EventEmitter<Events> {
     this.#log = log;
   }
 
+  /**
+   * Points mockix:// at this app when it no longer does, and says whether it had to.
+   * An update or another installation can remove or redirect it while Mockix runs.
+   */
+  static ensureRegistered(app: { isDefaultProtocolClient(scheme: string): boolean; setAsDefaultProtocolClient(scheme: string): boolean }): boolean {
+    const scheme = PROTOCOL.slice(0, -1);
+    return !app.isDefaultProtocolClient(scheme) && app.setAsDefaultProtocolClient(scheme);
+  }
+
   /** The first mockix:// argument of a command line (Windows passes links as arguments). */
   static fromArgv(argv: readonly string[]): string | null {
     return argv.find((a) => a.toLowerCase().startsWith(`${PROTOCOL}//`)) ?? null;

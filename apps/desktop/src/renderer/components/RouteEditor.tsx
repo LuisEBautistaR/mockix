@@ -176,13 +176,9 @@ function RouteLine({ mock, tab, d }: { mock: MockStatus; tab: string; d: Draft }
           Sendix
         </button>
       )}
-      {d.dirty ? (
+      {d.dirty && (
         <button type="button" className="btn btn-secondary" onClick={() => save(tab)} disabled={d.saving} data-testid="route-save">
           <Icon name="save" size={14} /> Guardar
-        </button>
-      ) : (
-        <button type="button" className="btn btn-secondary" disabled title="La integración con Sendix llega en M10">
-          Abrir en Sendix
         </button>
       )}
     </div>

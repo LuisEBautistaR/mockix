@@ -31,6 +31,19 @@ describe("mockix:// links", () => {
     expect(LinkService.fromArgv(["Mockix.exe", "."])).toBeNull();
   });
 
+  it("registers mockix:// again only when it no longer points to this app", () => {
+    const calls: string[] = [];
+    const registry = (current: boolean) => ({
+      isDefaultProtocolClient: (scheme: string) => (calls.push(`is ${scheme}`), current),
+      setAsDefaultProtocolClient: (scheme: string) => (calls.push(`set ${scheme}`), true),
+    });
+    expect(LinkService.ensureRegistered(registry(true))).toBe(false);
+    expect(calls).toEqual(["is mockix"]);
+    calls.length = 0;
+    expect(LinkService.ensureRegistered(registry(false))).toBe(true);
+    expect(calls).toEqual(["is mockix", "set mockix"]);
+  });
+
   it("turns a valid import or open link into a request that waits for the user", async () => {
     const { ws, collection, links, got } = await setup();
     await links.handle(link("import", { collection, workspace: ws }));
